@@ -125,49 +125,48 @@ class DnDDatabase {
 
     async addCharacter(character) {
         // Базовая структура персонажа
-        // В методе addCharacter обновляем структуру по умолчанию:
-const defaultCharacter = {
-    name: 'Новый персонаж',
-    race: 'Человек',
-    gender: '',
-    level: 1,
-    avatar: null,
-    background: '',
-    alignment: 'Нейтральный',
-    experience: 0,
-    
-    // Характеристики
-    abilities: {
-        strength: 10,
-        dexterity: 10,
-        constitution: 10,
-        intelligence: 10,
-        wisdom: 10,
-        charisma: 10
-    },
-    
-    // Боевые параметры
-    combat: {
-        maxHP: 10,
-        currentHP: 10,
-        temporaryHP: 0,
-        armorClass: 10,
-        initiative: 0,
-        speed: 30
-    },
-    
-    // Навыки
-    skills: {},
-    
-    // Снаряжение
-    equipment: [],
-    
-    // Заклинания
-    spells: [],
-    
-    createdAt: new Date(),
-    updatedAt: new Date()
-};
+        const defaultCharacter = {
+            name: 'Новый персонаж',
+            race: 'Человек',
+            gender: '',
+            level: 1,
+            avatar: null,
+            background: '',
+            alignment: 'Нейтральный',
+            experience: 0,
+            
+            // Характеристики
+            abilities: {
+                strength: 10,
+                dexterity: 10,
+                constitution: 10,
+                intelligence: 10,
+                wisdom: 10,
+                charisma: 10
+            },
+            
+            // Боевые параметры
+            combat: {
+                maxHP: 10,
+                currentHP: 10,
+                temporaryHP: 0,
+                armorClass: 10,
+                initiative: 0,
+                speed: 30
+            },
+            
+            // Навыки
+            skills: {},
+            
+            // Снаряжение
+            equipment: [],
+            
+            // Заклинания
+            spells: [],
+            
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
 
         const characterData = { ...defaultCharacter, ...character };
         return this.add('characters', characterData);
