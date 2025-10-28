@@ -161,10 +161,10 @@
         <div class="modal auth-modal">
             <div class="modal-header">
                 <h3 id="auth-modal-title">Вход</h3>
-                <button id="auth-modal-close" class="btn-close">×</button>
+                <button class="btn-close" onclick="app.closeAuthModal()">×</button>
             </div>
             
-            <form id="auth-form" class="auth-form">
+            <form id="auth-form" class="auth-form" onsubmit="app.handleAuthSubmit(event)">
                 <div class="form-group">
                     <label for="auth-email">Email</label>
                     <input type="email" id="auth-email" required>
@@ -183,8 +183,8 @@
                 <div id="auth-error" class="error-message"></div>
                 
                 <div class="form-actions">
-                    <button type="button" id="auth-cancel-btn" class="btn-secondary">Отмена</button>
-                    <button type="submit" id="auth-submit-btn" class="btn-primary">Войти</button>
+                    <button type="button" class="btn-secondary" onclick="app.closeAuthModal()">Отмена</button>
+                    <button type="submit" class="btn-primary">Войти</button>
                 </div>
             </form>
         </div>
@@ -195,10 +195,10 @@
         <div class="modal">
             <div class="modal-header">
                 <h3>Редактирование профиля</h3>
-                <button class="btn-close" id="profile-modal-close">×</button>
+                <button class="btn-close" onclick="app.closeProfileModal()">×</button>
             </div>
             
-            <form id="profile-form" class="profile-form">
+            <form id="profile-form" class="profile-form" onsubmit="app.handleProfileSubmit(event)">
                 <div class="form-section">
                     <label class="section-label">Аватар профиля</label>
                     <div class="avatar-upload">
@@ -206,11 +206,11 @@
                             <div class="avatar-placeholder">👤</div>
                         </div>
                         <div class="avatar-controls">
-                            <input type="file" id="profile-avatar-input" accept="image/*" style="display: none;">
-                            <button type="button" class="btn-secondary" id="profile-avatar-select">
+                            <input type="file" id="profile-avatar-input" accept="image/*" style="display: none;" onchange="app.handleAvatarSelect(event)">
+                            <button type="button" class="btn-secondary" onclick="document.getElementById('profile-avatar-input').click()">
                                 📷 Выбрать изображение
                             </button>
-                            <button type="button" class="btn-danger" id="profile-avatar-remove">
+                            <button type="button" class="btn-danger" onclick="app.removeProfileAvatar()">
                                 ❌ Удалить
                             </button>
                         </div>
@@ -260,7 +260,7 @@
                 <div id="profile-error" class="error-message"></div>
                 
                 <div class="form-actions">
-                    <button type="button" class="btn-secondary" id="profile-cancel-btn">
+                    <button type="button" class="btn-secondary" onclick="app.closeProfileModal()">
                         Отмена
                     </button>
                     <button type="submit" class="btn-primary">
