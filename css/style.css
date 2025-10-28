@@ -27,6 +27,47 @@ body {
     line-height: 1.6;
 }
 
+/* Хедер приложения */
+.app-header {
+    background: var(--secondary-dark);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0 20px;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 15px 0;
+}
+
+.app-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-light);
+    margin: 0;
+}
+
+/* Контейнер аутентификации */
+.auth-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.auth-section, .user-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-info {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
 /* Навигация */
 .tabs {
     display: flex;
@@ -311,6 +352,28 @@ body {
     transition: width 0.3s ease;
 }
 
+/* Бейджи для индикации типа хранения */
+.cloud-badge, .local-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 8px;
+}
+
+.cloud-badge {
+    background: rgba(66, 133, 244, 0.2);
+    color: #4285f4;
+    border: 1px solid #4285f4;
+}
+
+.local-badge {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+    border: 1px solid #ffc107;
+}
+
 /* Действия с персонажем */
 .character-actions {
     display: flex;
@@ -424,6 +487,22 @@ body {
 .btn-close:hover {
     background: rgba(255, 255, 255, 0.1);
     color: var(--text-light);
+}
+
+/* Модальное окно аутентификации */
+.auth-modal {
+    max-width: 400px;
+}
+
+.auth-form {
+    padding: 20px;
+}
+
+.error-message {
+    color: var(--danger);
+    font-size: 14px;
+    margin: 10px 0;
+    text-align: center;
 }
 
 /* Форма персонажа */
@@ -642,55 +721,301 @@ body {
     font-size: 1.5em;
 }
 
-/* Стили для других вкладок */
-#spells, #combat {
-    max-width: 100%;
+/* Стили для вкладки заклинаний */
+.spells-header {
+    margin-bottom: 24px;
 }
 
-#spell-search {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+.spells-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+    padding: 20px;
+    background: var(--card-bg);
     border-radius: var(--border-radius);
-    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filter-group label {
+    font-weight: 500;
     color: var(--text-light);
-    margin-bottom: 20px;
     font-size: 14px;
 }
 
-#spell-search:focus {
-    outline: none;
-    border-color: var(--accent);
+.filter-group select,
+.filter-group input {
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-light);
+    font-size: 14px;
 }
 
+.search-group {
+    grid-column: 1 / -1;
+}
+
+/* Сетка заклинаний */
+.spells-list {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.spell-level-section {
+    margin-bottom: 32px;
+}
+
+.spell-level-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--accent);
+}
+
+.spells-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 16px;
+}
+
+/* Карточка заклинания */
 .spell-card {
     background: var(--card-bg);
     border-radius: var(--border-radius);
     padding: 16px;
-    margin-bottom: 12px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
 }
 
 .spell-card:hover {
-    border-color: var(--accent);
     transform: translateY(-2px);
+    box-shadow: var(--shadow);
+    border-color: var(--accent);
 }
 
-.spell-card h3 {
-    color: var(--accent);
-    margin-bottom: 8px;
+.spell-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.spell-name {
     font-size: 16px;
+    font-weight: 600;
+    color: var(--text-light);
+    margin: 0;
+    line-height: 1.2;
 }
 
-.spell-card p {
+.spell-level {
+    background: var(--accent);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.spell-details {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
     font-size: 14px;
+}
+
+.spell-school {
+    color: var(--accent);
+    font-weight: 500;
+}
+
+.spell-classes {
     color: var(--text-muted);
+}
+
+.spell-info {
+    margin-bottom: 16px;
+}
+
+.spell-property {
+    display: flex;
+    justify-content: space-between;
     margin-bottom: 4px;
+    font-size: 13px;
+}
+
+.property-label {
+    color: var(--text-muted);
+}
+
+.property-value {
+    color: var(--text-light);
+    font-weight: 500;
+    text-align: right;
+}
+
+.spell-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-view-spell,
+.btn-add-to-character {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.btn-view-spell {
+    background: var(--secondary-dark);
+    color: var(--text-light);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-add-to-character {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-view-spell:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-add-to-character:hover {
+    background: var(--accent-light);
+}
+
+/* Модальное окно заклинания */
+.spell-modal {
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.spell-details-content {
+    padding: 20px;
+}
+
+.spell-basic-info {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.spell-level-badge,
+.spell-school-badge,
+.concentration-badge,
+.ritual-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.spell-level-badge {
+    background: var(--accent);
+    color: white;
+}
+
+.spell-school-badge {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-light);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.concentration-badge {
+    background: rgba(76, 175, 80, 0.2);
+    color: #4CAF50;
+    border: 1px solid #4CAF50;
+}
+
+.ritual-badge {
+    background: rgba(33, 150, 243, 0.2);
+    color: #2196F3;
+    border: 1px solid #2196F3;
+}
+
+.spell-properties-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.spell-properties-grid .property {
+    font-size: 14px;
+}
+
+.spell-material,
+.spell-classes {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.spell-description {
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+.spell-higher-levels {
+    padding: 16px;
+    background: rgba(233, 69, 96, 0.1);
+    border-radius: 8px;
+    border-left: 4px solid var(--accent);
+}
+
+.spell-higher-levels strong {
+    color: var(--accent);
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Адаптивность */
 @media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .app-title {
+        font-size: 18px;
+    }
+    
+    .auth-container {
+        justify-content: center;
+    }
+
     .characters-grid {
         grid-template-columns: 1fr;
     }
@@ -755,9 +1080,34 @@ body {
         padding: 12px 8px;
         font-size: 12px;
     }
+
+    .spells-filters {
+        grid-template-columns: 1fr;
+    }
+    
+    .spells-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .spell-properties-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .spell-actions {
+        flex-direction: column;
+    }
+
+    .auth-section, .user-section {
+        flex-direction: column;
+        gap: 8px;
+    }
 }
 
 @media (max-width: 480px) {
+    .app-header {
+        padding: 0 10px;
+    }
+    
     .tab-button {
         padding: 10px 6px;
         font-size: 11px;
@@ -791,6 +1141,16 @@ body {
     
     .characters-header h2 {
         font-size: 20px;
+    }
+
+    .spell-header {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .spell-details {
+        flex-direction: column;
+        gap: 4px;
     }
 }
 
