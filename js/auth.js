@@ -1,72 +1,23 @@
+[file name]: auth.js
+[file content begin]
 class AuthManager {
     constructor() {
         this.user = null;
         this.isInitialized = false;
+        this.onAuthStateChanged = null;
         this.initFirebase();
-async updateUserProfile(displayName, photoURL) {
-    try {
-        await this.auth.currentUser.updateProfile({
-            displayName: displayName,
-            photoURL: photoURL
-        });
-        
-        // Обновляем данные в Firestore
-        await this.db.collection('users').doc(this.user.uid).update({
-            displayName: displayName,
-            photoURL: photoURL,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        return { success: true };
-    } catch (error) {
-        console.error('Error updating profile:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-async changePassword(currentPassword, newPassword) {
-    try {
-        const user = this.auth.currentUser;
-        const credential = firebase.auth.EmailAuthProvider.credential(
-            user.email, 
-            currentPassword
-        );
-        
-        // Re-authenticate user
-        await user.reauthenticateWithCredential(credential);
-        
-        // Change password
-        await user.updatePassword(newPassword);
-        
-        return { success: true };
-    } catch (error) {
-        console.error('Error changing password:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-getUserProfile() {
-    if (!this.user) return null;
-    
-    return {
-        displayName: this.user.displayName,
-        email: this.user.email,
-        photoURL: this.user.photoURL,
-        uid: this.user.uid
-    };
-}
     }
 
     initFirebase() {
-       const firebaseConfig = {
-    apiKey: "AIzaSyB0GvcaOCDiRcGh3MUBliarT6TwPbE5g4A",
-    authDomain: "dnd-character-manager-10ea1.firebaseapp.com",
-    projectId: "dnd-character-manager-10ea1",
-    storageBucket: "dnd-character-manager-10ea1.firebasestorage.app",
-    messagingSenderId: "449897270877",
-    appId: "1:449897270877:web:8bbadb8b8a31f2f98a07b4",
-    measurementId: "G-1DZSG1MCDS"
-  };
+        const firebaseConfig = {
+            apiKey: "AIzaSyB0GvcaOCDiRcGh3MUBliarT6TwPbE5g4A",
+            authDomain: "dnd-character-manager-10ea1.firebaseapp.com",
+            projectId: "dnd-character-manager-10ea1",
+            storageBucket: "dnd-character-manager-10ea1.firebasestorage.app",
+            messagingSenderId: "449897270877",
+            appId: "1:449897270877:web:8bbadb8b8a31f2f98a07b4",
+            measurementId: "G-1DZSG1MCDS"
+        };
 
         try {
             firebase.initializeApp(firebaseConfig);
@@ -83,22 +34,10 @@ getUserProfile() {
     setupAuthListener() {
         this.auth.onAuthStateChanged((user) => {
             this.user = user;
-            this.onAuthStateChanged(user);
+            if (this.onAuthStateChanged) {
+                this.onAuthStateChanged(user);
+            }
         });
-    }
-
-    onAuthStateChanged(user) {
-        // Этот метод будет переопределен в основном приложении
-        if (user) {
-            console.log('User signed in:', user.email);
-            document.getElementById('auth-section').style.display = 'none';
-            document.getElementById('user-section').style.display = 'flex';
-            document.getElementById('user-email').textContent = user.email;
-        } else {
-            console.log('User signed out');
-            document.getElementById('auth-section').style.display = 'flex';
-            document.getElementById('user-section').style.display = 'none';
-        }
     }
 
     async signUp(email, password, username) {
@@ -151,8 +90,61 @@ getUserProfile() {
         }
     }
 
-    async syncCharacterToCloud(character) {
+    async updateUserProfile(displayName, photoURL) {
+        try {
+            await this.auth.currentUser.updateProfile({
+                displayName: displayName,
+                photoURL: photoURL
+            });
+            
+            // Обновляем данные в Firestore
+            await this.db.collection('users').doc(this.user.uid).update({
+                displayName: displayName,
+                photoURL: photoURL,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            return { success: true };
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    async changePassword(currentPassword, newPassword) {
+        try {
+            const user = this.auth.currentUser;
+            const credential = firebase.auth.EmailAuthProvider.credential(
+                user.email, 
+                currentPassword
+            );
+            
+            // Re-authenticate user
+            await user.reauthenticateWithCredential(credential);
+            
+            // Change password
+            await user.updatePassword(newPassword);
+            
+            return { success: true };
+        } catch (error) {
+            console.error('Error changing password:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    getUserProfile() {
         if (!this.user) return null;
+        
+        return {
+            displayName: this.user.displayName,
+            email: this.user.email,
+            photoURL: this.user.photoURL,
+            uid: this.user.uid
+        };
+    }
+
+    async syncCharacterToCloud(character) {
+        if (!this.user) return { success: false, error: 'User not authenticated' };
 
         try {
             const characterData = {
@@ -219,3 +211,4 @@ getUserProfile() {
 
 // Глобальный экземпляр менеджера аутентификации
 const authManager = new AuthManager();
+[file content end]
