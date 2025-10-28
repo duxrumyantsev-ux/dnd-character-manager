@@ -1,219 +1,193 @@
-class SpellsManager {
-    constructor(spellLoader) {
-        this.spellLoader = spellLoader;
-    }
-
-    // Рендер списка заклинаний на главной вкладке
-    renderSpellsList(spells, filters = {}) {
-        const spellsList = document.getElementById('spells-list');
-        
-        if (spells.length === 0) {
-            spellsList.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">✨</div>
-                    <h3>Заклинания не найдены</h3>
-                    <p>Попробуйте изменить параметры фильтрации</p>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DnD Character Manager</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==">
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Хедер с аутентификацией -->
+        <header class="app-header">
+            <div class="header-content">
+                <h1 class="app-title">🎭 DnD Character Manager</h1>
+                
+                <div class="auth-container">
+                    <!-- Секция для неавторизованных пользователей -->
+                    <div id="auth-section" class="auth-section">
+                        <button id="signin-btn" class="btn-secondary">Войти</button>
+                        <button id="signup-btn" class="btn-primary">Регистрация</button>
+                    </div>
+                    
+                    <!-- Секция для авторизованных пользователей -->
+                    <div id="user-section" class="user-section" style="display: none;">
+                        <span class="user-info">
+                            <span id="user-email"></span>
+                        </span>
+                        <button id="logout-btn" class="btn-secondary">Выйти</button>
+                    </div>
                 </div>
-            `;
-            return;
-        }
+            </div>
+        </header>
 
-        // Группируем заклинания по уровням
-        const spellsByLevel = this.groupSpellsByLevel(spells);
-        
-        let html = '';
-        
-        Object.keys(spellsByLevel).sort((a, b) => parseInt(a) - parseInt(b)).forEach(level => {
-            const levelSpells = spellsByLevel[level];
-            const levelName = level === '0' ? 'Заговоры' : `${level} уровень`;
+        <!-- Навигация -->
+        <nav class="tabs">
+            <button class="tab-button active" data-tab="characters">🎭 Персонажи</button>
+            <button class="tab-button" data-tab="spells">✨ Заклинания</button>
+            <button class="tab-button" data-tab="dice">🎲 Кубики</button>
+            <button class="tab-button" data-tab="combat">⚔️ Бой</button>
+        </nav>
+
+        <!-- Контент вкладок -->
+        <div class="tab-content">
+            <!-- Вкладка Персонажи -->
+            <div id="characters" class="tab-pane active">
+                <div class="characters-header">
+                    <h2>Мои персонажи</h2>
+                    <button id="add-character" class="btn-primary">
+                        ＋ Создать персонажа
+                    </button>
+                </div>
+                
+                <div id="characters-list" class="characters-grid">
+                    <!-- Список персонажей будет здесь -->
+                </div>
+            </div>
             
-            html += `
-                <div class="spell-level-section">
-                    <h3 class="spell-level-title">${levelName}</h3>
-                    <div class="spells-grid">
-                        ${levelSpells.map(spell => this.renderSpellCard(spell)).join('')}
-                    </div>
-                </div>
-            `;
-        });
-
-        spellsList.innerHTML = html;
-        
-        // Добавляем обработчики для карточек
-        this.setupSpellCardHandlers();
-    }
-
-    groupSpellsByLevel(spells) {
-        return spells.reduce((groups, spell) => {
-            const level = spell.level;
-            if (!groups[level]) {
-                groups[level] = [];
-            }
-            groups[level].push(spell);
-            return groups;
-        }, {});
-    }
-
-    renderSpellCard(spell) {
-        const levelText = spell.level === 0 ? 'Заговор' : `${spell.level} ур.`;
-        const classesText = spell.classes.join(', ');
-        
-        return `
-            <div class="spell-card" data-spell-id="${spell.id}">
-                <div class="spell-header">
-                    <h4 class="spell-name">${spell.name}</h4>
-                    <span class="spell-level">${levelText}</span>
+            <!-- Вкладка Заклинания -->
+            <div id="spells" class="tab-pane">
+                <div class="spells-header">
+                    <h2>Библиотека заклинаний</h2>
                 </div>
                 
-                <div class="spell-details">
-                    <div class="spell-school">${spell.school}</div>
-                    <div class="spell-classes">${classesText}</div>
-                </div>
-                
-                <div class="spell-info">
-                    <div class="spell-property">
-                        <span class="property-label">Время накладывания:</span>
-                        <span class="property-value">${spell.castingTime}</span>
-                    </div>
-                    <div class="spell-property">
-                        <span class="property-label">Дистанция:</span>
-                        <span class="property-value">${spell.range}</span>
-                    </div>
-                    <div class="spell-property">
-                        <span class="property-label">Компоненты:</span>
-                        <span class="property-value">${spell.components.join(', ')}</span>
-                    </div>
-                    <div class="spell-property">
-                        <span class="property-label">Длительность:</span>
-                        <span class="property-value">${spell.duration}</span>
-                    </div>
-                </div>
-                
-                <div class="spell-actions">
-                    <button class="btn-view-spell" data-spell-id="${spell.id}">
-                        📖 Подробнее
-                    </button>
-                    <button class="btn-add-to-character" data-spell-id="${spell.id}">
-                        ➕ Добавить персонажу
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-
-    setupSpellCardHandlers() {
-        // Просмотр подробной информации о заклинании
-        document.querySelectorAll('.btn-view-spell').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const spellId = e.target.dataset.spellId;
-                this.showSpellDetails(spellId);
-            });
-        });
-
-        // Добавление заклинания персонажу
-        document.querySelectorAll('.btn-add-to-character').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const spellId = e.target.dataset.spellId;
-                this.addSpellToCharacter(spellId);
-            });
-        });
-    }
-
-    // Показать детальную информацию о заклинании
-    showSpellDetails(spellId) {
-        const spell = this.spellLoader.getSpellById(spellId);
-        if (!spell) return;
-
-        const modalHtml = `
-            <div class="modal-overlay" id="spell-details-modal">
-                <div class="modal spell-modal">
-                    <div class="modal-header">
-                        <h3>${spell.name}</h3>
-                        <button class="btn-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+                <div class="spells-filters">
+                    <div class="filter-group">
+                        <label for="spell-level-filter">Уровень:</label>
+                        <select id="spell-level-filter">
+                            <option value="all">Все уровни</option>
+                            <option value="0">Заговоры</option>
+                            <option value="1">1 уровень</option>
+                            <option value="2">2 уровень</option>
+                            <option value="3">3 уровень</option>
+                            <option value="4">4 уровень</option>
+                            <option value="5">5 уровень</option>
+                            <option value="6">6 уровень</option>
+                            <option value="7">7 уровень</option>
+                            <option value="8">8 уровень</option>
+                            <option value="9">9 уровень</option>
+                        </select>
                     </div>
                     
-                    <div class="spell-details-content">
-                        <div class="spell-basic-info">
-                            <div class="spell-level-badge level-${spell.level}">
-                                ${spell.level === 0 ? 'Заговор' : `${spell.level} уровень`}
-                            </div>
-                            <div class="spell-school-badge">${spell.school}</div>
-                            ${spell.concentration ? '<div class="concentration-badge">Концентрация</div>' : ''}
-                            ${spell.ritual ? '<div class="ritual-badge">Ритуал</div>' : ''}
-                        </div>
-                        
-                        <div class="spell-properties-grid">
-                            <div class="property">
-                                <strong>Время накладывания:</strong> ${spell.castingTime}
-                            </div>
-                            <div class="property">
-                                <strong>Дистанция:</strong> ${spell.range}
-                            </div>
-                            <div class="property">
-                                <strong>Компоненты:</strong> ${spell.components.join(', ')}
-                            </div>
-                            <div class="property">
-                                <strong>Длительность:</strong> ${spell.duration}
-                            </div>
-                        </div>
-                        
-                        ${spell.material ? `
-                            <div class="spell-material">
-                                <strong>Материальные компоненты:</strong> ${spell.material}
-                            </div>
-                        ` : ''}
-                        
-                        <div class="spell-classes">
-                            <strong>Классы:</strong> ${spell.classes.join(', ')}
-                        </div>
-                        
-                        <div class="spell-description">
-                            <p>${spell.description}</p>
-                        </div>
-                        
-                        ${spell.atHigherLevels ? `
-                            <div class="spell-higher-levels">
-                                <strong>На высших уровнях:</strong>
-                                <p>${spell.atHigherLevels}</p>
-                            </div>
-                        ` : ''}
+                    <div class="filter-group">
+                        <label for="spell-class-filter">Класс:</label>
+                        <select id="spell-class-filter">
+                            <option value="all">Все классы</option>
+                            <option value="Бард">Бард</option>
+                            <option value="Волшебник">Волшебник</option>
+                            <option value="Жрец">Жрец</option>
+                            <option value="Друид">Друид</option>
+                            <option value="Паладин">Паладин</option>
+                            <option value="Следопыт">Следопыт</option>
+                            <option value="Чародей">Чародей</option>
+                            <option value="Колдун">Колдун</option>
+                        </select>
                     </div>
                     
-                    <div class="modal-actions">
-                        <button class="btn-primary" onclick="spellsManager.addSpellToCharacter('${spell.id}')">
-                            Добавить персонажу
-                        </button>
-                        <button class="btn-secondary" onclick="this.closest('.modal-overlay').remove()">
-                            Закрыть
-                        </button>
+                    <div class="filter-group">
+                        <label for="spell-school-filter">Школа:</label>
+                        <select id="spell-school-filter">
+                            <option value="all">Все школы</option>
+                            <option value="Вызов">Вызов</option>
+                            <option value="Ограждение">Ограждение</option>
+                            <option value="Воплощение">Воплощение</option>
+                            <option value="Прорицание">Прорицание</option>
+                            <option value="Очарование">Очарование</option>
+                            <option value="Иллюзия">Иллюзия</option>
+                            <option value="Некромантия">Некромантия</option>
+                            <option value="Преобразование">Преобразование</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group search-group">
+                        <label for="spell-search">Поиск:</label>
+                        <input type="text" id="spell-search" placeholder="Название или описание...">
                     </div>
                 </div>
+                
+                <div id="spells-list" class="spells-list">
+                    <!-- Список заклинаний будет здесь -->
+                </div>
             </div>
-        `;
+            
+            <div id="dice" class="tab-pane">
+                <h2>Бросок кубиков</h2>
+                <div class="dice-buttons">
+                    <button class="dice" data-sides="4">d4</button>
+                    <button class="dice" data-sides="6">d6</button>
+                    <button class="dice" data-sides="8">d8</button>
+                    <button class="dice" data-sides="10">d10</button>
+                    <button class="dice" data-sides="12">d12</button>
+                    <button class="dice" data-sides="20">d20</button>
+                    <button class="dice" data-sides="100">d100</button>
+                </div>
+                <div id="dice-result"></div>
+            </div>
+            
+            <div id="combat" class="tab-pane">
+                <h2>Трекер боя</h2>
+                <button id="add-combatant">＋ Добавить участника</button>
+                <div id="initiative-list"></div>
+            </div>
+        </div>
+    </div>
 
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-    }
+    <!-- Модальное окно аутентификации -->
+    <div id="auth-modal" class="modal-overlay" style="display: none;">
+        <div class="modal auth-modal">
+            <div class="modal-header">
+                <h3 id="auth-modal-title">Вход</h3>
+                <button id="auth-modal-close" class="btn-close">×</button>
+            </div>
+            
+            <form id="auth-form" class="auth-form">
+                <div class="form-group">
+                    <label for="auth-email">Email</label>
+                    <input type="email" id="auth-email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="auth-password">Пароль</label>
+                    <input type="password" id="auth-password" required minlength="6">
+                </div>
+                
+                <div id="auth-username-field" class="form-group" style="display: none;">
+                    <label for="auth-username">Имя пользователя</label>
+                    <input type="text" id="auth-username">
+                </div>
+                
+                <div id="auth-error" class="error-message"></div>
+                
+                <div class="form-actions">
+                    <button type="button" id="auth-cancel-btn" class="btn-secondary">Отмена</button>
+                    <button type="submit" id="auth-submit-btn" class="btn-primary">Войти</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-    // Добавление заклинания персонажу
-    addSpellToCharacter(spellId) {
-        if (!app.characterManager) {
-            alert('Сначала создайте персонажа или откройте существующего для редактирования');
-            return;
-        }
-
-        const spell = this.spellLoader.getSpellById(spellId);
-        if (!spell) return;
-
-        // Здесь будет логика добавления заклинания к текущему редактируемому персонажу
-        // Пока просто покажем сообщение
-        alert(`Заклинание "${spell.name}" будет добавлено персонажу`);
-        
-        // Закрываем модальное окно, если открыто
-        const modal = document.getElementById('spell-details-modal');
-        if (modal) {
-            modal.remove();
-        }
-    }
-}
-
-const spellsManager = new SpellsManager(spellLoader);
+    <script src="js/db.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/spell-structure.js"></script>
+    <script src="js/spell-loader.js"></script>
+    <script src="js/spells-manager.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
