@@ -1,22 +1,40 @@
-
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    color: white;
-    min-height: 100vh;
+:root {
+    --primary-dark: #1a1a2e;
+    --secondary-dark: #16213e;
+    --accent: #e94560;
+    --accent-light: #ff6b81;
+    --text-light: #ffffff;
+    --text-muted: #b0b0b0;
+    --success: #4CAF50;
+    --warning: #FF9800;
+    --danger: #F44336;
+    --card-bg: rgba(255, 255, 255, 0.08);
+    --border-radius: 12px;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--secondary-dark) 100%);
+    color: var(--text-light);
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+/* Навигация */
 .tabs {
     display: flex;
-    background: #0f3460;
+    background: var(--secondary-dark);
     position: sticky;
     top: 0;
+    z-index: 100;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .tab-button {
@@ -24,25 +42,486 @@ body {
     padding: 15px;
     background: none;
     border: none;
-    color: white;
+    color: var(--text-muted);
     cursor: pointer;
-    transition: background 0.3s;
-    font-size: 12px;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 .tab-button.active {
-    background: #e94560;
+    background: var(--accent);
+    color: var(--text-light);
+    border-bottom: 2px solid var(--accent-light);
 }
 
 .tab-pane {
     display: none;
     padding: 20px;
+    animation: fadeIn 0.3s ease;
 }
 
 .tab-pane.active {
     display: block;
 }
 
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Заголовок секции персонажей */
+.characters-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.characters-header h2 {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-light);
+}
+
+/* Кнопки */
+.btn-primary {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary:hover {
+    background: var(--accent-light);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+.btn-secondary {
+    background: var(--card-bg);
+    color: var(--text-light);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 10px 16px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.btn-danger:hover {
+    background: #d32f2f;
+}
+
+/* Сетка персонажей */
+.characters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+}
+
+.empty-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+}
+
+.empty-state h3 {
+    font-size: 20px;
+    margin-bottom: 8px;
+    color: var(--text-light);
+}
+
+/* Карточка персонажа */
+.character-card {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+.character-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow);
+    border-color: var(--accent);
+}
+
+.character-avatar {
+    flex-shrink: 0;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.character-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-placeholder {
+    font-size: 32px;
+    opacity: 0.7;
+}
+
+.character-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.character-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.character-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-light);
+    margin: 0;
+}
+
+.character-level {
+    background: var(--accent);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.character-details {
+    margin-bottom: 16px;
+}
+
+.detail-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+.detail-label {
+    color: var(--text-muted);
+}
+
+.detail-value {
+    color: var(--text-light);
+    font-weight: 500;
+}
+
+/* HP бар */
+.hp-bar {
+    margin-top: 12px;
+}
+
+.hp-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+.hp-current {
+    color: var(--text-light);
+    font-weight: 600;
+}
+
+.hp-separator {
+    color: var(--text-muted);
+}
+
+.hp-max {
+    color: var(--text-muted);
+}
+
+.hp-text {
+    color: var(--text-muted);
+    margin-left: auto;
+    font-size: 12px;
+}
+
+.hp-track {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.hp-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+/* Действия с персонажем */
+.character-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.btn-action {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text-muted);
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+.btn-action:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-light);
+    transform: scale(1.1);
+}
+
+/* Модальное окно */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+    backdrop-filter: blur(5px);
+}
+
+.modal {
+    background: var(--secondary-dark);
+    border-radius: var(--border-radius);
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-header h3 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.btn-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-light);
+}
+
+/* Форма персонажа */
+.character-form {
+    padding: 20px;
+}
+
+.form-section {
+    margin-bottom: 24px;
+}
+
+.section-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-light);
+    font-size: 16px;
+}
+
+/* Загрузка аватара */
+.avatar-upload {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.avatar-preview {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.avatar-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+/* Сетка форм */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: var(--text-light);
+    font-size: 14px;
+}
+
+.form-group input,
+.form-group select {
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-light);
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.form-group input::placeholder {
+    color: var(--text-muted);
+}
+
+/* Сетка характеристик */
+.abilities-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+}
+
+.ability-input {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ability-input label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.ability-score {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-light);
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.ability-modifier {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+/* Действия формы */
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Кубики (оставляем без изменений) */
 .dice-buttons {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -53,7 +532,7 @@ body {
 .dice {
     padding: 20px;
     font-size: 1.2em;
-    background: #e94560;
+    background: var(--accent);
     color: white;
     border: none;
     border-radius: 10px;
@@ -72,25 +551,71 @@ body {
 }
 
 .result-number {
-    color: #e94560;
+    color: var(--accent);
     font-weight: bold;
 }
 
-button {
-    padding: 10px 15px;
-    background: #e94560;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    margin: 5px 0;
+/* Адаптивность */
+@media (max-width: 768px) {
+    .characters-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .characters-header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: stretch;
+    }
+    
+    .character-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .character-actions {
+        flex-direction: row;
+        justify-content: center;
+    }
+    
+    .avatar-upload {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .abilities-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .dice-buttons {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .modal {
+        margin: 10px;
+        max-height: calc(100vh - 20px);
+    }
 }
 
-input {
-    padding: 10px;
-    border: 1px solid #0f3460;
-    border-radius: 5px;
-    width: 100%;
-    margin: 10px 0;
+@media (max-width: 480px) {
+    .tab-button {
+        padding: 12px 8px;
+        font-size: 12px;
+    }
+    
+    .abilities-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .dice-buttons {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
 }
-
