@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DnD Character Manager</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Временная иконка -->
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==">
+</head>
+<body>
+    <div id="app">
+        <nav class="tabs">
+            <button class="tab-button active" data-tab="characters">Персонажи</button>
+            <button class="tab-button" data-tab="spells">Заклинания</button>
+            <button class="tab-button" data-tab="dice">Кубики</button>
+            <button class="tab-button" data-tab="combat">Бой</button>
+        </nav>
+
+        <div class="tab-content">
+            <div id="characters" class="tab-pane active">
+                <h2>Мои персонажи</h2>
+                <button id="add-character">+ Новый персонаж</button>
+                <div id="characters-list"></div>
+            </div>
+            
+            <div id="spells" class="tab-pane">
+                <h2>Библиотека заклинаний</h2>
+                <input type="text" id="spell-search" placeholder="Поиск заклинаний...">
+                <div id="spells-list"></div>
+            </div>
+            
+            <div id="dice" class="tab-pane">
+                <h2>Бросок кубиков</h2>
+                <div class="dice-buttons">
+                    <button class="dice" data-sides="4">d4</button>
+                    <button class="dice" data-sides="6">d6</button>
+                    <button class="dice" data-sides="8">d8</button>
+                    <button class="dice" data-sides="10">d10</button>
+                    <button class="dice" data-sides="12">d12</button>
+                    <button class="dice" data-sides="20">d20</button>
+                    <button class="dice" data-sides="100">d100</button>
+                </div>
+                <div id="dice-result"></div>
+            </div>
+            
+            <div id="combat" class="tab-pane">
+                <h2>Трекер боя</h2>
+                <button id="add-combatant">+ Добавить участника</button>
+                <div id="initiative-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
