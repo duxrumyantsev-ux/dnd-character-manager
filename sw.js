@@ -1,10 +1,12 @@
-const CACHE_NAME = 'dnd-app-v1';
+const CACHE_NAME = 'dnd-app-v2'; // Увеличиваем версию
 const urlsToCache = [
-    '/dnd-character-manager/',
-    '/dnd-character-manager/index.html',
-    '/dnd-character-manager/css/style.css',
-    '/dnd-character-manager/js/app.js',
-    '/dnd-character-manager/manifest.json'
+    '/',
+    '/index.html',
+    '/css/style.css',
+    '/js/app.js',
+    '/js/db.js', // Добавляем новый файл
+    '/manifest.json',
+    '/sw.js'
 ];
 
 self.addEventListener('install', event => {
