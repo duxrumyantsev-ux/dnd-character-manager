@@ -13,30 +13,193 @@ class DnDApp {
             search: ''
         };
         this.init();
+initProfileManager() {
+    this.profileAvatarFile = null;
+    document.getElementById('user-avatar-btn').addEventListener('click', () => {
+        this.showProfileModal();
+    });
+}
+
+showProfileModal() {
+    const user = this.auth.getUserProfile();
+    if (!user) return;
+
+    const modal = document.getElementById('profile-modal');
+    const preview = document.getElementById('profile-avatar-preview');
+    
+    // Заполняем форму данными пользователя
+    document.getElementById('profile-display-name').value = user.displayName || '';
+    document.getElementById('profile-email').value = user.email || '';
+    
+    // Устанавливаем аватар
+    if (user.photoURL) {
+        preview.innerHTML = `<img src="${user.photoURL}" alt="Preview" />`;
+        this.updateUserAvatar(user.photoURL);
+    } else {
+        preview.innerHTML = '<div class="avatar-placeholder">👤</div>';
+    }
+    
+    // Очищаем поля пароля
+    document.getElementById('profile-current-password').value = '';
+    document.getElementById('profile-new-password').value = '';
+    document.getElementById('profile-confirm-password').value = '';
+    document.getElementById('profile-error').textContent = '';
+    
+    this.setupProfileFormHandlers();
+    modal.style.display = 'flex';
+}
+
+setupProfileFormHandlers() {
+    const form = document.getElementById('profile-form');
+    const avatarInput = document.getElementById('profile-avatar-input');
+    const avatarPreview = document.getElementById('profile-avatar-preview');
+    
+    // Обработчик выбора аватара
+    avatarInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Размер файла не должен превышать 2MB');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                avatarPreview.innerHTML = `<img src="${e.target.result}" alt="Preview" />`;
+                this.profileAvatarFile = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Обработчик отправки формы
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.saveProfile();
+    });
+}
+
+async saveProfile() {
+    const displayName = document.getElementById('profile-display-name').value;
+    const currentPassword = document.getElementById('profile-current-password').value;
+    const newPassword = document.getElementById('profile-new-password').value;
+    const confirmPassword = document.getElementById('profile-confirm-password').value;
+    const errorElement = document.getElementById('profile-error');
+    
+    errorElement.textContent = '';
+
+    try {
+        // Обновляем профиль
+        let photoURL = null;
+        if (this.profileAvatarFile) {
+            // Здесь можно загрузить аватар в Firebase Storage
+            // Пока сохраняем как base64
+            photoURL = this.profileAvatarFile;
+        }
+        
+        const profileResult = await this.auth.updateUserProfile(displayName, photoURL);
+        if (!profileResult.success) {
+            throw new Error(profileResult.error);
+        }
+
+        // Обновляем аватар в хедере
+        if (photoURL) {
+            this.updateUserAvatar(photoURL);
+        }
+
+        // Меняем пароль, если заполнены поля
+        if (currentPassword && newPassword) {
+            if (newPassword !== confirmPassword) {
+                throw new Error('Новые пароли не совпадают');
+            }
+            
+            const passwordResult = await this.auth.changePassword(currentPassword, newPassword);
+            if (!passwordResult.success) {
+                throw new Error(passwordResult.error);
+            }
+        }
+
+        this.closeProfileModal();
+        this.updateUIForAuth(); // Обновляем интерфейс
+
+    } catch (error) {
+        errorElement.textContent = error.message;
+    }
+}
+
+removeProfileAvatar() {
+    const avatarPreview = document.getElementById('profile-avatar-preview');
+    avatarPreview.innerHTML = '<div class="avatar-placeholder">👤</div>';
+    this.profileAvatarFile = null;
+    document.getElementById('profile-avatar-input').value = '';
+}
+
+updateUserAvatar(photoURL) {
+    const avatarImg = document.getElementById('user-avatar-img');
+    const avatarPlaceholder = document.getElementById('avatar-placeholder');
+    
+    if (photoURL) {
+        avatarImg.src = photoURL;
+        avatarImg.classList.add('show');
+        avatarPlaceholder.style.display = 'none';
+    } else {
+        avatarImg.classList.remove('show');
+        avatarPlaceholder.style.display = 'flex';
+    }
+}
+
+closeProfileModal() {
+    document.getElementById('profile-modal').style.display = 'none';
+    this.profileAvatarFile = null;
+}
+
+// Обновите метод updateUIForAuth:
+updateUIForAuth() {
+    const isSignedIn = this.auth.isSignedIn();
+    const authSection = document.getElementById('auth-section');
+    const userSection = document.getElementById('user-section');
+    
+    if (isSignedIn) {
+        authSection.style.display = 'none';
+        userSection.style.display = 'flex';
+        
+        // Обновляем информацию пользователя
+        const user = this.auth.getUserProfile();
+        if (user) {
+            document.getElementById('user-display-name').textContent = user.displayName || 'Пользователь';
+            document.getElementById('user-email').textContent = user.email;
+            this.updateUserAvatar(user.photoURL);
+        }
+    } else {
+        authSection.style.display = 'flex';
+        userSection.style.display = 'none';
+    }
+}
     }
 
     async init() {
-        try {
-            // Инициализируем базу данных
-            await this.db.init();
-            console.log('Database initialized');
-            
-            // Настраиваем обработчики аутентификации
-            this.auth.onAuthStateChanged = (user) => this.handleAuthStateChange(user);
-            
-            // Инициализируем компоненты
-            this.initUI();
-            this.initTabs();
-            this.initDice();
-            this.initCharacterManager();
-            this.initAuthHandlers();
-            this.initSpellsManager();
-            this.initServiceWorker();
-            
-        } catch (error) {
-            console.error('Failed to initialize app:', error);
-        }
+    try {
+        // Инициализируем базу данных
+        await this.db.init();
+        console.log('Database initialized');
+        
+        // Настраиваем обработчики аутентификации
+        this.auth.onAuthStateChanged = (user) => this.handleAuthStateChange(user);
+        
+        // Инициализируем компоненты
+        this.initUI();
+        this.initTabs();
+        this.initDice();
+        this.initCharacterManager();
+        this.initAuthHandlers();
+        this.initSpellsManager();
+        this.initProfileManager(); // Добавляем эту строку
+        this.initServiceWorker();
+        
+    } catch (error) {
+        console.error('Failed to initialize app:', error);
     }
+}
 
     handleAuthStateChange(user) {
         if (user) {
