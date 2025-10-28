@@ -3,6 +3,58 @@ class AuthManager {
         this.user = null;
         this.isInitialized = false;
         this.initFirebase();
+async updateUserProfile(displayName, photoURL) {
+    try {
+        await this.auth.currentUser.updateProfile({
+            displayName: displayName,
+            photoURL: photoURL
+        });
+        
+        // Обновляем данные в Firestore
+        await this.db.collection('users').doc(this.user.uid).update({
+            displayName: displayName,
+            photoURL: photoURL,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+async changePassword(currentPassword, newPassword) {
+    try {
+        const user = this.auth.currentUser;
+        const credential = firebase.auth.EmailAuthProvider.credential(
+            user.email, 
+            currentPassword
+        );
+        
+        // Re-authenticate user
+        await user.reauthenticateWithCredential(credential);
+        
+        // Change password
+        await user.updatePassword(newPassword);
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Error changing password:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+getUserProfile() {
+    if (!this.user) return null;
+    
+    return {
+        displayName: this.user.displayName,
+        email: this.user.email,
+        photoURL: this.user.photoURL,
+        uid: this.user.uid
+    };
+}
     }
 
     initFirebase() {
