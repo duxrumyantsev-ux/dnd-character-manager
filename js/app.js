@@ -237,19 +237,26 @@ class DnDApp {
 
     // Загрузка заклинаний
     async loadSpells() {
-        try {
-            // Пытаемся загрузить из Firestore, если нет - из JSON
-            let spells = await this.spellLoader.loadFromFirestore();
-            if (spells.length === 0) {
-                spells = await this.spellLoader.loadFromJSON();
-            }
-            
-            this.spellsManager.renderSpellsList(spells, this.currentSpellFilters);
-            this.setupSpellsFilters();
-        } catch (error) {
-            console.error('Error loading spells:', error);
+    try {
+        console.log('Starting spells load...');
+        
+        // Пытаемся загрузить из Firestore
+        let spells = await this.spellLoader.loadFromFirestore();
+        console.log('Spells from Firestore:', spells);
+        
+        if (spells.length === 0) {
+            console.log('No spells in Firestore, loading from JSON');
+            spells = await this.spellLoader.loadFromJSON();
         }
+        
+        console.log('Total spells to render:', spells.length);
+        this.spellsManager.renderSpellsList(spells, this.currentSpellFilters);
+        this.setupSpellsFilters();
+        
+    } catch (error) {
+        console.error('Error loading spells:', error);
     }
+}
 
     setupSpellsFilters() {
         // Фильтр по уровню
