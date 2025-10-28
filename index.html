@@ -6,25 +6,35 @@
     <title>DnD Character Manager</title>
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/style.css">
-    <!-- Временная иконка -->
     <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==">
 </head>
 <body>
     <div id="app">
+        <!-- Навигация -->
         <nav class="tabs">
-            <button class="tab-button active" data-tab="characters">Персонажи</button>
-            <button class="tab-button" data-tab="spells">Заклинания</button>
-            <button class="tab-button" data-tab="dice">Кубики</button>
-            <button class="tab-button" data-tab="combat">Бой</button>
+            <button class="tab-button active" data-tab="characters">🎭 Персонажи</button>
+            <button class="tab-button" data-tab="spells">✨ Заклинания</button>
+            <button class="tab-button" data-tab="dice">🎲 Кубики</button>
+            <button class="tab-button" data-tab="combat">⚔️ Бой</button>
         </nav>
 
+        <!-- Контент вкладок -->
         <div class="tab-content">
+            <!-- Вкладка Персонажи -->
             <div id="characters" class="tab-pane active">
-                <h2>Мои персонажи</h2>
-                <button id="add-character">+ Новый персонаж</button>
-                <div id="characters-list"></div>
+                <div class="characters-header">
+                    <h2>Мои персонажи</h2>
+                    <button id="add-character" class="btn-primary">
+                        ＋ Создать персонажа
+                    </button>
+                </div>
+                
+                <div id="characters-list" class="characters-grid">
+                    <!-- Список персонажей будет здесь -->
+                </div>
             </div>
             
+            <!-- Остальные вкладки без изменений -->
             <div id="spells" class="tab-pane">
                 <h2>Библиотека заклинаний</h2>
                 <input type="text" id="spell-search" placeholder="Поиск заклинаний...">
@@ -47,12 +57,13 @@
             
             <div id="combat" class="tab-pane">
                 <h2>Трекер боя</h2>
-                <button id="add-combatant">+ Добавить участника</button>
+                <button id="add-combatant">＋ Добавить участника</button>
                 <div id="initiative-list"></div>
             </div>
         </div>
     </div>
 
+    <script src="js/db.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
