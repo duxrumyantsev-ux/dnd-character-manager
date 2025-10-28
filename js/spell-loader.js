@@ -19,24 +19,25 @@ class SpellLoader {
 
     // Загрузка заклинаний из Firestore
     async loadFromFirestore() {
-        if (!authManager.isInitialized) {
-            console.log('Firebase not initialized');
-            return [];
-        }
-
-        try {
-            const snapshot = await authManager.db.collection('spells').get();
-            this.spells = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-            console.log(`Loaded ${this.spells.length} spells from Firestore`);
-            return this.spells;
-        } catch (error) {
-            console.error('Error loading spells from Firestore:', error);
-            return [];
-        }
+    if (!authManager.isInitialized || !authManager.db) {
+        console.log('Firebase not initialized');
+        return [];
     }
+
+    try {
+        const snapshot = await authManager.db.collection('spells').get();
+        const spells = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        console.log(`Loaded ${spells.length} spells from Firestore:`, spells);
+        this.spells = spells;
+        return spells;
+    } catch (error) {
+        console.error('Error loading spells from Firestore:', error);
+        return [];
+    }
+}
 
     // Загрузка заклинаний в Firestore (для первоначального наполнения)
     async uploadToFirestore() {
