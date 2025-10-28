@@ -1,8 +1,7 @@
-[file name]: app.js
-[file content begin]
 // Главный класс приложения
 class DnDApp {
     constructor() {
+        console.log('DnDApp constructor called');
         this.db = database;
         this.auth = authManager;
         this.spellLoader = spellLoader;
@@ -15,10 +14,10 @@ class DnDApp {
             search: ''
         };
         this.profileAvatarFile = null;
-        this.init();
     }
 
     async init() {
+        console.log('Initializing DnDApp...');
         try {
             // Инициализируем базу данных
             await this.db.init();
@@ -37,12 +36,15 @@ class DnDApp {
             this.initProfileManager();
             this.initServiceWorker();
             
+            console.log('DnDApp initialized successfully');
+            
         } catch (error) {
             console.error('Failed to initialize app:', error);
         }
     }
 
     handleAuthStateChange(user) {
+        console.log('Auth state changed:', user ? 'User signed in' : 'User signed out');
         if (user) {
             // Пользователь вошел - загружаем данные из облака
             this.loadCloudCharacters();
@@ -54,6 +56,7 @@ class DnDApp {
     }
 
     initUI() {
+        console.log('Initializing UI...');
         // Показываем/скрываем элементы в зависимости от аутентификации
         this.updateUIForAuth();
     }
@@ -62,6 +65,8 @@ class DnDApp {
         const isSignedIn = this.auth.isSignedIn();
         const authSection = document.getElementById('auth-section');
         const userSection = document.getElementById('user-section');
+        
+        console.log('Updating UI for auth, signed in:', isSignedIn);
         
         if (isSignedIn) {
             authSection.style.display = 'none';
@@ -82,13 +87,15 @@ class DnDApp {
 
     initServiceWorker() {
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js')
+            navigator.serviceWorker.register('/dnd-character-manager/sw.js')
                 .then(registration => console.log('SW registered'))
                 .catch(error => console.log('SW registration failed'));
         }
     }
 
     initAuthHandlers() {
+        console.log('Initializing auth handlers...');
+        
         // Обработчики для кнопок аутентификации
         document.getElementById('signin-btn').addEventListener('click', () => this.showAuthModal('signin'));
         document.getElementById('signup-btn').addEventListener('click', () => this.showAuthModal('signup'));
@@ -98,9 +105,12 @@ class DnDApp {
         document.getElementById('auth-modal-close').addEventListener('click', () => this.closeAuthModal());
         document.getElementById('auth-cancel-btn').addEventListener('click', () => this.closeAuthModal());
         document.getElementById('auth-form').addEventListener('submit', (e) => this.handleAuthSubmit(e));
+        
+        console.log('Auth handlers initialized');
     }
 
     showAuthModal(mode = 'signin') {
+        console.log('Showing auth modal:', mode);
         const modal = document.getElementById('auth-modal');
         const title = document.getElementById('auth-modal-title');
         const submitBtn = document.getElementById('auth-submit-btn');
@@ -125,12 +135,14 @@ class DnDApp {
     }
 
     closeAuthModal() {
+        console.log('Closing auth modal');
         document.getElementById('auth-modal').style.display = 'none';
         document.getElementById('auth-error').textContent = '';
     }
 
     async handleAuthSubmit(e) {
         e.preventDefault();
+        console.log('Handling auth submit');
         
         const modal = document.getElementById('auth-modal');
         const mode = modal.dataset.mode;
@@ -144,23 +156,29 @@ class DnDApp {
         try {
             let result;
             if (mode === 'signup') {
+                console.log('Signing up...');
                 result = await this.auth.signUp(email, password, username);
             } else {
+                console.log('Signing in...');
                 result = await this.auth.signIn(email, password);
             }
 
             if (result.success) {
+                console.log('Auth successful');
                 this.closeAuthModal();
                 this.updateUIForAuth();
             } else {
+                console.log('Auth failed:', result.error);
                 errorElement.textContent = result.error;
             }
         } catch (error) {
+            console.error('Auth error:', error);
             errorElement.textContent = 'Произошла ошибка: ' + error.message;
         }
     }
 
     async signOut() {
+        console.log('Signing out...');
         const result = await this.auth.signOut();
         if (result.success) {
             this.updateUIForAuth();
@@ -170,6 +188,7 @@ class DnDApp {
 
     async loadCloudCharacters() {
         try {
+            console.log('Loading cloud characters...');
             const cloudCharacters = await this.auth.getCloudCharacters();
             this.characters = cloudCharacters;
             this.characterManager.renderCharacters(cloudCharacters);
@@ -182,9 +201,11 @@ class DnDApp {
 
     // Управление вкладками
     initTabs() {
+        console.log('Initializing tabs...');
         document.querySelectorAll('.tab-button').forEach(button => {
             button.addEventListener('click', (e) => {
                 const tabName = e.target.dataset.tab;
+                console.log('Switching to tab:', tabName);
                 this.switchTab(tabName);
             });
         });
@@ -203,6 +224,7 @@ class DnDApp {
 
         switch(tabName) {
             case 'characters':
+                console.log('Loading characters tab');
                 if (this.auth.isSignedIn()) {
                     this.loadCloudCharacters();
                 } else {
@@ -210,9 +232,11 @@ class DnDApp {
                 }
                 break;
             case 'spells':
+                console.log('Loading spells tab');
                 this.loadSpells();
                 break;
             case 'combat':
+                console.log('Loading combat tab');
                 this.loadCombat();
                 break;
         }
@@ -220,9 +244,11 @@ class DnDApp {
 
     // Система броска кубиков
     initDice() {
+        console.log('Initializing dice...');
         document.querySelectorAll('.dice').forEach(button => {
             button.addEventListener('click', (e) => {
                 const sides = parseInt(e.target.dataset.sides);
+                console.log('Rolling dice:', sides);
                 this.rollDice(sides);
             });
         });
@@ -247,14 +273,17 @@ class DnDApp {
 
     // Менеджер персонажей
     initCharacterManager() {
+        console.log('Initializing character manager...');
         this.characterManager = new CharacterManager(this.db, this.auth);
         document.getElementById('add-character').addEventListener('click', () => {
+            console.log('Add character button clicked');
             this.characterManager.showCharacterForm();
         });
     }
 
     // Менеджер заклинаний
     initSpellsManager() {
+        console.log('Initializing spells manager...');
         this.spellsManager = new SpellsManager(this.spellLoader);
     }
 
@@ -282,6 +311,7 @@ class DnDApp {
     }
 
     setupSpellsFilters() {
+        console.log('Setting up spells filters...');
         // Фильтр по уровню
         document.getElementById('spell-level-filter').addEventListener('change', (e) => {
             this.currentSpellFilters.level = e.target.value;
@@ -319,7 +349,9 @@ class DnDApp {
 
     // Менеджер профиля
     initProfileManager() {
+        console.log('Initializing profile manager...');
         document.getElementById('user-avatar-btn').addEventListener('click', () => {
+            console.log('Profile avatar clicked');
             this.showProfileModal();
         });
 
@@ -501,7 +533,9 @@ class CharacterManager {
         }
 
         charactersList.innerHTML = characters.map(character => {
-            const hpPercent = (character.combat.currentHP / character.combat.maxHP) * 100;
+            const currentHP = character.combat?.currentHP || 0;
+            const maxHP = character.combat?.maxHP || 1;
+            const hpPercent = (currentHP / maxHP) * 100;
             const hpColor = hpPercent > 70 ? '#4CAF50' : hpPercent > 30 ? '#FF9800' : '#F44336';
             
             return `
@@ -532,9 +566,9 @@ class CharacterManager {
                         
                         <div class="hp-bar">
                             <div class="hp-info">
-                                <span class="hp-current">${character.combat.currentHP}</span>
+                                <span class="hp-current">${currentHP}</span>
                                 <span class="hp-separator">/</span>
-                                <span class="hp-max">${character.combat.maxHP}</span>
+                                <span class="hp-max">${maxHP}</span>
                                 <span class="hp-text">HP</span>
                             </div>
                             <div class="hp-track">
@@ -549,16 +583,37 @@ class CharacterManager {
                     </div>
                     
                     <div class="character-actions">
-                        <button class="btn-action btn-edit" onclick="app.characterManager.editCharacter('${character.id}')" title="Редактировать">
+                        <button class="btn-action btn-edit" data-character-id="${character.id}" title="Редактировать">
                             ✏️
                         </button>
-                        <button class="btn-action btn-delete" onclick="app.characterManager.deleteCharacter('${character.id}')" title="Удалить">
+                        <button class="btn-action btn-delete" data-character-id="${character.id}" title="Удалить">
                             🗑️
                         </button>
                     </div>
                 </div>
             `;
         }).join('');
+
+        // Добавляем обработчики для кнопок действий
+        this.setupCharacterActionHandlers();
+    }
+
+    setupCharacterActionHandlers() {
+        // Обработчики для кнопок редактирования
+        document.querySelectorAll('.btn-edit').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const characterId = e.target.closest('.btn-edit').dataset.characterId;
+                this.editCharacter(characterId);
+            });
+        });
+
+        // Обработчики для кнопок удаления
+        document.querySelectorAll('.btn-delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const characterId = e.target.closest('.btn-delete').dataset.characterId;
+                this.deleteCharacter(characterId);
+            });
+        });
     }
 
     async showCharacterForm(characterId = null) {
@@ -707,6 +762,8 @@ class CharacterManager {
     }
 
     setupFormHandlers(character) {
+        console.log('Setting up character form handlers');
+        
         // Обработчики модального окна персонажа
         document.getElementById('character-modal-close').addEventListener('click', () => this.closeForm());
         document.getElementById('character-cancel-btn').addEventListener('click', () => this.closeForm());
@@ -832,10 +889,12 @@ class CharacterManager {
     }
 
     async editCharacter(characterId) {
+        console.log('Editing character:', characterId);
         await this.showCharacterForm(characterId);
     }
 
     async deleteCharacter(characterId) {
+        console.log('Deleting character:', characterId);
         if (confirm('Вы уверены, что хотите удалить этого персонажа? Это действие нельзя отменить.')) {
             try {
                 let success;
@@ -869,6 +928,9 @@ class CharacterManager {
 // Инициализация приложения
 let app;
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM Content Loaded');
     app = new DnDApp();
+    app.init().catch(error => {
+        console.error('Failed to initialize app:', error);
+    });
 });
-[file content end]
