@@ -2,23 +2,60 @@
 class DnDApp {
     constructor() {
         this.db = database;
+        this.auth = authManager;
+        this.spellLoader = spellLoader;
         this.currentTab = 'characters';
+        this.characters = [];
+        this.currentSpellFilters = {
+            level: 'all',
+            class: 'all',
+            school: 'all',
+            search: ''
+        };
         this.init();
     }
 
     async init() {
         try {
+            // Инициализируем базу данных
             await this.db.init();
             console.log('Database initialized');
             
+            // Настраиваем обработчики аутентификации
+            this.auth.onAuthStateChanged = (user) => this.handleAuthStateChange(user);
+            
+            // Инициализируем компоненты
+            this.initUI();
             this.initTabs();
             this.initDice();
             this.initCharacterManager();
+            this.initAuthHandlers();
+            this.initSpellsManager();
             this.initServiceWorker();
             
         } catch (error) {
             console.error('Failed to initialize app:', error);
         }
+    }
+
+    handleAuthStateChange(user) {
+        if (user) {
+            // Пользователь вошел - загружаем данные из облака
+            this.loadCloudCharacters();
+        } else {
+            // Пользователь вышел - загружаем локальные данные
+            this.characterManager.loadCharacters();
+        }
+    }
+
+    initUI() {
+        // Показываем/скрываем элементы в зависимости от аутентификации
+        this.updateUIForAuth();
+    }
+
+    updateUIForAuth() {
+        const isSignedIn = this.auth.isSignedIn();
+        // Можно добавить дополнительную логику отображения
     }
 
     initServiceWorker() {
@@ -29,6 +66,98 @@ class DnDApp {
         }
     }
 
+    initAuthHandlers() {
+        // Обработчики для форм аутентификации
+        document.getElementById('signin-btn').addEventListener('click', () => this.showAuthModal('signin'));
+        document.getElementById('signup-btn').addEventListener('click', () => this.showAuthModal('signup'));
+        document.getElementById('logout-btn').addEventListener('click', () => this.signOut());
+        
+        // Закрытие модального окна
+        document.getElementById('auth-modal-close').addEventListener('click', () => this.closeAuthModal());
+        document.getElementById('auth-cancel-btn').addEventListener('click', () => this.closeAuthModal());
+        
+        // Отправка форм
+        document.getElementById('auth-form').addEventListener('submit', (e) => this.handleAuthSubmit(e));
+    }
+
+    showAuthModal(mode = 'signin') {
+        const modal = document.getElementById('auth-modal');
+        const title = document.getElementById('auth-modal-title');
+        const submitBtn = document.getElementById('auth-submit-btn');
+        const usernameField = document.getElementById('auth-username-field');
+
+        if (mode === 'signup') {
+            title.textContent = 'Регистрация';
+            submitBtn.textContent = 'Зарегистрироваться';
+            usernameField.style.display = 'block';
+        } else {
+            title.textContent = 'Вход';
+            submitBtn.textContent = 'Войти';
+            usernameField.style.display = 'none';
+        }
+
+        modal.dataset.mode = mode;
+        modal.style.display = 'flex';
+        
+        // Очищаем форму
+        document.getElementById('auth-form').reset();
+    }
+
+    closeAuthModal() {
+        document.getElementById('auth-modal').style.display = 'none';
+        document.getElementById('auth-error').textContent = '';
+    }
+
+    async handleAuthSubmit(e) {
+        e.preventDefault();
+        
+        const modal = document.getElementById('auth-modal');
+        const mode = modal.dataset.mode;
+        const email = document.getElementById('auth-email').value;
+        const password = document.getElementById('auth-password').value;
+        const username = document.getElementById('auth-username').value;
+        const errorElement = document.getElementById('auth-error');
+
+        errorElement.textContent = '';
+
+        try {
+            let result;
+            if (mode === 'signup') {
+                result = await this.auth.signUp(email, password, username);
+            } else {
+                result = await this.auth.signIn(email, password);
+            }
+
+            if (result.success) {
+                this.closeAuthModal();
+            } else {
+                errorElement.textContent = result.error;
+            }
+        } catch (error) {
+            errorElement.textContent = 'Произошла ошибка: ' + error.message;
+        }
+    }
+
+    async signOut() {
+        const result = await this.auth.signOut();
+        if (result.success) {
+            this.characterManager.loadCharacters(); // Переключаемся на локальные данные
+        }
+    }
+
+    async loadCloudCharacters() {
+        try {
+            const cloudCharacters = await this.auth.getCloudCharacters();
+            this.characters = cloudCharacters;
+            this.characterManager.renderCharacters(cloudCharacters);
+        } catch (error) {
+            console.error('Error loading cloud characters:', error);
+            // В случае ошибки загружаем локальные данные
+            this.characterManager.loadCharacters();
+        }
+    }
+
+    // Управление вкладками
     initTabs() {
         document.querySelectorAll('.tab-button').forEach(button => {
             button.addEventListener('click', (e) => {
@@ -51,7 +180,11 @@ class DnDApp {
 
         switch(tabName) {
             case 'characters':
-                this.characterManager.loadCharacters();
+                if (this.auth.isSignedIn()) {
+                    this.loadCloudCharacters();
+                } else {
+                    this.characterManager.loadCharacters();
+                }
                 break;
             case 'spells':
                 this.loadSpells();
@@ -62,6 +195,7 @@ class DnDApp {
         }
     }
 
+    // Система броска кубиков
     initDice() {
         document.querySelectorAll('.dice').forEach(button => {
             button.addEventListener('click', (e) => {
@@ -88,76 +222,115 @@ class DnDApp {
         }, 200);
     }
 
+    // Менеджер персонажей
     initCharacterManager() {
-        this.characterManager = new CharacterManager(this.db);
+        this.characterManager = new CharacterManager(this.db, this.auth);
         document.getElementById('add-character').addEventListener('click', () => {
             this.characterManager.showCharacterForm();
         });
     }
 
+    // Менеджер заклинаний
+    initSpellsManager() {
+        this.spellsManager = new SpellsManager(this.spellLoader);
+    }
+
+    // Загрузка заклинаний
     async loadSpells() {
         try {
-            const spells = await this.db.getSpells();
-            this.renderSpells(spells);
+            // Пытаемся загрузить из Firestore, если нет - из JSON
+            let spells = await this.spellLoader.loadFromFirestore();
+            if (spells.length === 0) {
+                spells = await this.spellLoader.loadFromJSON();
+            }
+            
+            this.spellsManager.renderSpellsList(spells, this.currentSpellFilters);
+            this.setupSpellsFilters();
         } catch (error) {
             console.error('Error loading spells:', error);
         }
     }
 
-    renderSpells(spells) {
-        const spellsList = document.getElementById('spells-list');
-        
-        if (spells.length === 0) {
-            spellsList.innerHTML = '<p>Заклинания не загружены. Нужно добавить базу заклинаний.</p>';
-            return;
-        }
+    setupSpellsFilters() {
+        // Фильтр по уровню
+        document.getElementById('spell-level-filter').addEventListener('change', (e) => {
+            this.currentSpellFilters.level = e.target.value;
+            this.applySpellsFilters();
+        });
 
-        spellsList.innerHTML = spells.map(spell => `
-            <div class="spell-card">
-                <h3>${spell.name}</h3>
-                <p>Уровень: ${spell.level} | Школа: ${spell.school}</p>
-                <p>${spell.description}</p>
-            </div>
-        `).join('');
+        // Фильтр по классу
+        document.getElementById('spell-class-filter').addEventListener('change', (e) => {
+            this.currentSpellFilters.class = e.target.value;
+            this.applySpellsFilters();
+        });
+
+        // Фильтр по школе
+        document.getElementById('spell-school-filter').addEventListener('change', (e) => {
+            this.currentSpellFilters.school = e.target.value;
+            this.applySpellsFilters();
+        });
+
+        // Поиск
+        document.getElementById('spell-search').addEventListener('input', (e) => {
+            this.currentSpellFilters.search = e.target.value;
+            this.applySpellsFilters();
+        });
     }
 
+    applySpellsFilters() {
+        const filteredSpells = this.spellLoader.getSpells(this.currentSpellFilters);
+        this.spellsManager.renderSpellsList(filteredSpells, this.currentSpellFilters);
+    }
+
+    // Загрузка боевой ситуации
     async loadCombat() {
         console.log('Loading combat...');
     }
 }
 
-// Менеджер персонажей - полностью переписан
+// Менеджер персонажей (обновленная версия)
 class CharacterManager {
-    constructor(db) {
+    constructor(db, auth) {
         this.db = db;
+        this.auth = auth;
         this.characters = [];
         this.avatarFile = null;
     }
 
     async loadCharacters() {
         try {
-            this.characters = await this.db.getCharacters();
-            this.renderCharacters();
+            if (this.auth.isSignedIn()) {
+                // Загружаем из облака
+                this.characters = await this.auth.getCloudCharacters();
+            } else {
+                // Загружаем локально
+                this.characters = await this.db.getCharacters();
+            }
+            this.renderCharacters(this.characters);
         } catch (error) {
             console.error('Error loading characters:', error);
         }
     }
 
-    renderCharacters() {
+    renderCharacters(characters) {
         const charactersList = document.getElementById('characters-list');
         
-        if (this.characters.length === 0) {
+        if (characters.length === 0) {
+            const message = this.auth.isSignedIn() ? 
+                'У вас пока нет персонажей в облаке. Создайте первого!' : 
+                'Персонажей пока нет. Создайте первого или войдите для синхронизации!';
+                
             charactersList.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-icon">🎭</div>
-                    <h3>Персонажей пока нет</h3>
-                    <p>Создайте своего первого персонажа для приключений!</p>
+                    <h3>${this.auth.isSignedIn() ? 'Облачные персонажи' : 'Локальные персонажи'}</h3>
+                    <p>${message}</p>
                 </div>
             `;
             return;
         }
 
-        charactersList.innerHTML = this.characters.map(character => {
+        charactersList.innerHTML = characters.map(character => {
             const hpPercent = (character.combat.currentHP / character.combat.maxHP) * 100;
             const hpColor = hpPercent > 70 ? '#4CAF50' : hpPercent > 30 ? '#FF9800' : '#F44336';
             
@@ -198,6 +371,11 @@ class CharacterManager {
                                 <div class="hp-fill" style="width: ${hpPercent}%; background: ${hpColor}"></div>
                             </div>
                         </div>
+                        
+                        ${this.auth.isSignedIn() ? 
+                            '<div class="cloud-badge">☁️ Облако</div>' : 
+                            '<div class="local-badge">📱 Локально</div>'
+                        }
                     </div>
                     
                     <div class="character-actions">
@@ -214,7 +392,7 @@ class CharacterManager {
     }
 
     async showCharacterForm(characterId = null) {
-        const character = characterId ? await this.db.get('characters', characterId) : null;
+        const character = characterId ? await this.getCharacter(characterId) : null;
         
         const formHtml = `
             <div class="modal-overlay" id="character-modal">
@@ -404,6 +582,16 @@ class CharacterManager {
         document.getElementById('avatar-input').value = '';
     }
 
+    async getCharacter(characterId) {
+        if (this.auth.isSignedIn()) {
+            // Ищем в облачных данных
+            return this.characters.find(char => char.id === characterId);
+        } else {
+            // Ищем в локальных данных
+            return await this.db.get('characters', parseInt(characterId));
+        }
+    }
+
     async saveCharacter() {
         const form = document.getElementById('character-form');
         const characterId = document.getElementById('character-id').value;
@@ -432,28 +620,32 @@ class CharacterManager {
         };
 
         try {
-            if (characterId) {
-                // Обновление существующего персонажа
-                const existingCharacter = await this.db.get('characters', parseInt(characterId));
-                const updatedCharacter = { 
-                    ...existingCharacter, 
-                    ...characterData,
-                    id: parseInt(characterId) // Сохраняем оригинальный ID
-                };
-                
-                // Сохраняем аватар только если он был изменен
-                if (!this.avatarFile && existingCharacter.avatar) {
-                    updatedCharacter.avatar = existingCharacter.avatar;
+            let success;
+            if (this.auth.isSignedIn()) {
+                // Сохраняем в облако
+                if (characterId) {
+                    characterData.id = characterId;
                 }
-                
-                await this.db.updateCharacter(updatedCharacter);
+                const result = await this.auth.syncCharacterToCloud(characterData);
+                success = result.success;
             } else {
-                // Создание нового персонажа
-                await this.db.addCharacter(characterData);
+                // Сохраняем локально
+                if (characterId) {
+                    const existingCharacter = await this.db.get('characters', parseInt(characterId));
+                    const updatedCharacter = { ...existingCharacter, ...characterData };
+                    await this.db.updateCharacter(updatedCharacter);
+                } else {
+                    await this.db.addCharacter(characterData);
+                }
+                success = true;
             }
 
-            this.closeForm();
-            await this.loadCharacters();
+            if (success) {
+                this.closeForm();
+                await this.loadCharacters();
+            } else {
+                alert('Ошибка при сохранении персонажа');
+            }
             
         } catch (error) {
             console.error('Error saving character:', error);
@@ -468,8 +660,18 @@ class CharacterManager {
     async deleteCharacter(characterId) {
         if (confirm('Вы уверены, что хотите удалить этого персонажа? Это действие нельзя отменить.')) {
             try {
-                await this.db.deleteCharacter(characterId);
-                await this.loadCharacters();
+                let success;
+                if (this.auth.isSignedIn()) {
+                    success = await this.auth.deleteCloudCharacter(characterId);
+                } else {
+                    success = await this.db.deleteCharacter(parseInt(characterId));
+                }
+
+                if (success) {
+                    await this.loadCharacters();
+                } else {
+                    alert('Ошибка при удалении персонажа');
+                }
             } catch (error) {
                 console.error('Error deleting character:', error);
                 alert('Ошибка при удалении персонажа');
