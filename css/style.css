@@ -1,1 +1,96 @@
 
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: white;
+    min-height: 100vh;
+}
+
+.tabs {
+    display: flex;
+    background: #0f3460;
+    position: sticky;
+    top: 0;
+}
+
+.tab-button {
+    flex: 1;
+    padding: 15px;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    transition: background 0.3s;
+    font-size: 12px;
+}
+
+.tab-button.active {
+    background: #e94560;
+}
+
+.tab-pane {
+    display: none;
+    padding: 20px;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
+.dice-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.dice {
+    padding: 20px;
+    font-size: 1.2em;
+    background: #e94560;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.dice:active {
+    transform: scale(0.95);
+}
+
+.result {
+    text-align: center;
+    font-size: 2em;
+    margin: 20px 0;
+}
+
+.result-number {
+    color: #e94560;
+    font-weight: bold;
+}
+
+button {
+    padding: 10px 15px;
+    background: #e94560;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 5px 0;
+}
+
+input {
+    padding: 10px;
+    border: 1px solid #0f3460;
+    border-radius: 5px;
+    width: 100%;
+    margin: 10px 0;
+}
+
