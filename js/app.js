@@ -1,3 +1,5 @@
+[file name]: app.js
+[file content begin]
 // Главный класс приложения
 class DnDApp {
     constructor() {
@@ -12,194 +14,33 @@ class DnDApp {
             school: 'all',
             search: ''
         };
+        this.profileAvatarFile = null;
         this.init();
-initProfileManager() {
-    this.profileAvatarFile = null;
-    document.getElementById('user-avatar-btn').addEventListener('click', () => {
-        this.showProfileModal();
-    });
-}
-
-showProfileModal() {
-    const user = this.auth.getUserProfile();
-    if (!user) return;
-
-    const modal = document.getElementById('profile-modal');
-    const preview = document.getElementById('profile-avatar-preview');
-    
-    // Заполняем форму данными пользователя
-    document.getElementById('profile-display-name').value = user.displayName || '';
-    document.getElementById('profile-email').value = user.email || '';
-    
-    // Устанавливаем аватар
-    if (user.photoURL) {
-        preview.innerHTML = `<img src="${user.photoURL}" alt="Preview" />`;
-        this.updateUserAvatar(user.photoURL);
-    } else {
-        preview.innerHTML = '<div class="avatar-placeholder">👤</div>';
-    }
-    
-    // Очищаем поля пароля
-    document.getElementById('profile-current-password').value = '';
-    document.getElementById('profile-new-password').value = '';
-    document.getElementById('profile-confirm-password').value = '';
-    document.getElementById('profile-error').textContent = '';
-    
-    this.setupProfileFormHandlers();
-    modal.style.display = 'flex';
-}
-
-setupProfileFormHandlers() {
-    const form = document.getElementById('profile-form');
-    const avatarInput = document.getElementById('profile-avatar-input');
-    const avatarPreview = document.getElementById('profile-avatar-preview');
-    
-    // Обработчик выбора аватара
-    avatarInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            if (file.size > 2 * 1024 * 1024) {
-                alert('Размер файла не должен превышать 2MB');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                avatarPreview.innerHTML = `<img src="${e.target.result}" alt="Preview" />`;
-                this.profileAvatarFile = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-
-    // Обработчик отправки формы
-    form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        this.saveProfile();
-    });
-}
-
-async saveProfile() {
-    const displayName = document.getElementById('profile-display-name').value;
-    const currentPassword = document.getElementById('profile-current-password').value;
-    const newPassword = document.getElementById('profile-new-password').value;
-    const confirmPassword = document.getElementById('profile-confirm-password').value;
-    const errorElement = document.getElementById('profile-error');
-    
-    errorElement.textContent = '';
-
-    try {
-        // Обновляем профиль
-        let photoURL = null;
-        if (this.profileAvatarFile) {
-            // Здесь можно загрузить аватар в Firebase Storage
-            // Пока сохраняем как base64
-            photoURL = this.profileAvatarFile;
-        }
-        
-        const profileResult = await this.auth.updateUserProfile(displayName, photoURL);
-        if (!profileResult.success) {
-            throw new Error(profileResult.error);
-        }
-
-        // Обновляем аватар в хедере
-        if (photoURL) {
-            this.updateUserAvatar(photoURL);
-        }
-
-        // Меняем пароль, если заполнены поля
-        if (currentPassword && newPassword) {
-            if (newPassword !== confirmPassword) {
-                throw new Error('Новые пароли не совпадают');
-            }
-            
-            const passwordResult = await this.auth.changePassword(currentPassword, newPassword);
-            if (!passwordResult.success) {
-                throw new Error(passwordResult.error);
-            }
-        }
-
-        this.closeProfileModal();
-        this.updateUIForAuth(); // Обновляем интерфейс
-
-    } catch (error) {
-        errorElement.textContent = error.message;
-    }
-}
-
-removeProfileAvatar() {
-    const avatarPreview = document.getElementById('profile-avatar-preview');
-    avatarPreview.innerHTML = '<div class="avatar-placeholder">👤</div>';
-    this.profileAvatarFile = null;
-    document.getElementById('profile-avatar-input').value = '';
-}
-
-updateUserAvatar(photoURL) {
-    const avatarImg = document.getElementById('user-avatar-img');
-    const avatarPlaceholder = document.getElementById('avatar-placeholder');
-    
-    if (photoURL) {
-        avatarImg.src = photoURL;
-        avatarImg.classList.add('show');
-        avatarPlaceholder.style.display = 'none';
-    } else {
-        avatarImg.classList.remove('show');
-        avatarPlaceholder.style.display = 'flex';
-    }
-}
-
-closeProfileModal() {
-    document.getElementById('profile-modal').style.display = 'none';
-    this.profileAvatarFile = null;
-}
-
-// Обновите метод updateUIForAuth:
-updateUIForAuth() {
-    const isSignedIn = this.auth.isSignedIn();
-    const authSection = document.getElementById('auth-section');
-    const userSection = document.getElementById('user-section');
-    
-    if (isSignedIn) {
-        authSection.style.display = 'none';
-        userSection.style.display = 'flex';
-        
-        // Обновляем информацию пользователя
-        const user = this.auth.getUserProfile();
-        if (user) {
-            document.getElementById('user-display-name').textContent = user.displayName || 'Пользователь';
-            document.getElementById('user-email').textContent = user.email;
-            this.updateUserAvatar(user.photoURL);
-        }
-    } else {
-        authSection.style.display = 'flex';
-        userSection.style.display = 'none';
-    }
-}
     }
 
     async init() {
-    try {
-        // Инициализируем базу данных
-        await this.db.init();
-        console.log('Database initialized');
-        
-        // Настраиваем обработчики аутентификации
-        this.auth.onAuthStateChanged = (user) => this.handleAuthStateChange(user);
-        
-        // Инициализируем компоненты
-        this.initUI();
-        this.initTabs();
-        this.initDice();
-        this.initCharacterManager();
-        this.initAuthHandlers();
-        this.initSpellsManager();
-        this.initProfileManager(); // Добавляем эту строку
-        this.initServiceWorker();
-        
-    } catch (error) {
-        console.error('Failed to initialize app:', error);
+        try {
+            // Инициализируем базу данных
+            await this.db.init();
+            console.log('Database initialized');
+            
+            // Настраиваем обработчики аутентификации
+            this.auth.onAuthStateChanged = (user) => this.handleAuthStateChange(user);
+            
+            // Инициализируем компоненты
+            this.initUI();
+            this.initTabs();
+            this.initDice();
+            this.initCharacterManager();
+            this.initAuthHandlers();
+            this.initSpellsManager();
+            this.initProfileManager();
+            this.initServiceWorker();
+            
+        } catch (error) {
+            console.error('Failed to initialize app:', error);
+        }
     }
-}
 
     handleAuthStateChange(user) {
         if (user) {
@@ -209,6 +50,7 @@ updateUIForAuth() {
             // Пользователь вышел - загружаем локальные данные
             this.characterManager.loadCharacters();
         }
+        this.updateUIForAuth();
     }
 
     initUI() {
@@ -218,7 +60,24 @@ updateUIForAuth() {
 
     updateUIForAuth() {
         const isSignedIn = this.auth.isSignedIn();
-        // Можно добавить дополнительную логику отображения
+        const authSection = document.getElementById('auth-section');
+        const userSection = document.getElementById('user-section');
+        
+        if (isSignedIn) {
+            authSection.style.display = 'none';
+            userSection.style.display = 'flex';
+            
+            // Обновляем информацию пользователя
+            const user = this.auth.getUserProfile();
+            if (user) {
+                document.getElementById('user-display-name').textContent = user.displayName || 'Пользователь';
+                document.getElementById('user-email').textContent = user.email;
+                this.updateUserAvatar(user.photoURL);
+            }
+        } else {
+            authSection.style.display = 'flex';
+            userSection.style.display = 'none';
+        }
     }
 
     initServiceWorker() {
@@ -230,16 +89,14 @@ updateUIForAuth() {
     }
 
     initAuthHandlers() {
-        // Обработчики для форм аутентификации
+        // Обработчики для кнопок аутентификации
         document.getElementById('signin-btn').addEventListener('click', () => this.showAuthModal('signin'));
         document.getElementById('signup-btn').addEventListener('click', () => this.showAuthModal('signup'));
         document.getElementById('logout-btn').addEventListener('click', () => this.signOut());
         
-        // Закрытие модального окна
+        // Обработчики модального окна аутентификации
         document.getElementById('auth-modal-close').addEventListener('click', () => this.closeAuthModal());
         document.getElementById('auth-cancel-btn').addEventListener('click', () => this.closeAuthModal());
-        
-        // Отправка форм
         document.getElementById('auth-form').addEventListener('submit', (e) => this.handleAuthSubmit(e));
     }
 
@@ -264,6 +121,7 @@ updateUIForAuth() {
         
         // Очищаем форму
         document.getElementById('auth-form').reset();
+        document.getElementById('auth-error').textContent = '';
     }
 
     closeAuthModal() {
@@ -293,6 +151,7 @@ updateUIForAuth() {
 
             if (result.success) {
                 this.closeAuthModal();
+                this.updateUIForAuth();
             } else {
                 errorElement.textContent = result.error;
             }
@@ -304,6 +163,7 @@ updateUIForAuth() {
     async signOut() {
         const result = await this.auth.signOut();
         if (result.success) {
+            this.updateUIForAuth();
             this.characterManager.loadCharacters(); // Переключаемся на локальные данные
         }
     }
@@ -400,26 +260,26 @@ updateUIForAuth() {
 
     // Загрузка заклинаний
     async loadSpells() {
-    try {
-        console.log('Starting spells load...');
-        
-        // Пытаемся загрузить из Firestore
-        let spells = await this.spellLoader.loadFromFirestore();
-        console.log('Spells from Firestore:', spells);
-        
-        if (spells.length === 0) {
-            console.log('No spells in Firestore, loading from JSON');
-            spells = await this.spellLoader.loadFromJSON();
+        try {
+            console.log('Starting spells load...');
+            
+            // Пытаемся загрузить из Firestore
+            let spells = await this.spellLoader.loadFromFirestore();
+            console.log('Spells from Firestore:', spells);
+            
+            if (spells.length === 0) {
+                console.log('No spells in Firestore, loading from JSON');
+                spells = await this.spellLoader.loadFromJSON();
+            }
+            
+            console.log('Total spells to render:', spells.length);
+            this.spellsManager.renderSpellsList(spells, this.currentSpellFilters);
+            this.setupSpellsFilters();
+            
+        } catch (error) {
+            console.error('Error loading spells:', error);
         }
-        
-        console.log('Total spells to render:', spells.length);
-        this.spellsManager.renderSpellsList(spells, this.currentSpellFilters);
-        this.setupSpellsFilters();
-        
-    } catch (error) {
-        console.error('Error loading spells:', error);
     }
-}
 
     setupSpellsFilters() {
         // Фильтр по уровню
@@ -456,9 +316,149 @@ updateUIForAuth() {
     async loadCombat() {
         console.log('Loading combat...');
     }
+
+    // Менеджер профиля
+    initProfileManager() {
+        document.getElementById('user-avatar-btn').addEventListener('click', () => {
+            this.showProfileModal();
+        });
+
+        // Обработчики модального окна профиля
+        document.getElementById('profile-modal-close').addEventListener('click', () => this.closeProfileModal());
+        document.getElementById('profile-cancel-btn').addEventListener('click', () => this.closeProfileModal());
+        document.getElementById('profile-avatar-select').addEventListener('click', () => {
+            document.getElementById('profile-avatar-input').click();
+        });
+        document.getElementById('profile-avatar-input').addEventListener('change', (e) => this.handleAvatarSelect(e));
+        document.getElementById('profile-avatar-remove').addEventListener('click', () => this.removeProfileAvatar());
+        document.getElementById('profile-form').addEventListener('submit', (e) => this.handleProfileSubmit(e));
+    }
+
+    showProfileModal() {
+        const user = this.auth.getUserProfile();
+        if (!user) return;
+
+        const modal = document.getElementById('profile-modal');
+        const preview = document.getElementById('profile-avatar-preview');
+        
+        // Заполняем форму данными пользователя
+        document.getElementById('profile-display-name').value = user.displayName || '';
+        document.getElementById('profile-email').value = user.email || '';
+        
+        // Устанавливаем аватар
+        if (user.photoURL) {
+            preview.innerHTML = `<img src="${user.photoURL}" alt="Preview" />`;
+        } else {
+            preview.innerHTML = '<div class="avatar-placeholder">👤</div>';
+        }
+        
+        // Очищаем поля пароля
+        document.getElementById('profile-current-password').value = '';
+        document.getElementById('profile-new-password').value = '';
+        document.getElementById('profile-confirm-password').value = '';
+        document.getElementById('profile-error').textContent = '';
+        
+        modal.style.display = 'flex';
+    }
+
+    handleAvatarSelect(event) {
+        const file = event.target.files[0];
+        if (file) {
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Размер файла не должен превышать 2MB');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const preview = document.getElementById('profile-avatar-preview');
+                preview.innerHTML = `<img src="${e.target.result}" alt="Preview" />`;
+                this.profileAvatarFile = file;
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    removeProfileAvatar() {
+        const preview = document.getElementById('profile-avatar-preview');
+        preview.innerHTML = '<div class="avatar-placeholder">👤</div>';
+        this.profileAvatarFile = null;
+        document.getElementById('profile-avatar-input').value = '';
+    }
+
+    async handleProfileSubmit(e) {
+        e.preventDefault();
+        
+        const displayName = document.getElementById('profile-display-name').value;
+        const currentPassword = document.getElementById('profile-current-password').value;
+        const newPassword = document.getElementById('profile-new-password').value;
+        const confirmPassword = document.getElementById('profile-confirm-password').value;
+        const errorElement = document.getElementById('profile-error');
+        
+        errorElement.textContent = '';
+
+        try {
+            // Обновляем профиль
+            let photoURL = null;
+            if (this.profileAvatarFile) {
+                // В реальном приложении здесь должна быть загрузка в Firebase Storage
+                // Для демо используем Data URL
+                photoURL = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(this.profileAvatarFile);
+                });
+            }
+            
+            const profileResult = await this.auth.updateUserProfile(displayName, photoURL);
+            if (!profileResult.success) {
+                throw new Error(profileResult.error);
+            }
+
+            // Обновляем аватар в хедере
+            this.updateUserAvatar(photoURL);
+
+            // Меняем пароль, если заполнены поля
+            if (currentPassword && newPassword) {
+                if (newPassword !== confirmPassword) {
+                    throw new Error('Новые пароли не совпадают');
+                }
+                
+                const passwordResult = await this.auth.changePassword(currentPassword, newPassword);
+                if (!passwordResult.success) {
+                    throw new Error(passwordResult.error);
+                }
+            }
+
+            this.closeProfileModal();
+            this.updateUIForAuth();
+
+        } catch (error) {
+            errorElement.textContent = error.message;
+        }
+    }
+
+    updateUserAvatar(photoURL) {
+        const avatarImg = document.getElementById('user-avatar-img');
+        const avatarPlaceholder = document.getElementById('avatar-placeholder');
+        
+        if (photoURL) {
+            avatarImg.src = photoURL;
+            avatarImg.style.display = 'block';
+            avatarPlaceholder.style.display = 'none';
+        } else {
+            avatarImg.style.display = 'none';
+            avatarPlaceholder.style.display = 'flex';
+        }
+    }
+
+    closeProfileModal() {
+        document.getElementById('profile-modal').style.display = 'none';
+        this.profileAvatarFile = null;
+    }
 }
 
-// Менеджер персонажей (обновленная версия)
+// Менеджер персонажей
 class CharacterManager {
     constructor(db, auth) {
         this.db = db;
@@ -549,10 +549,10 @@ class CharacterManager {
                     </div>
                     
                     <div class="character-actions">
-                        <button class="btn-action btn-edit" onclick="app.characterManager.editCharacter(${character.id})" title="Редактировать">
+                        <button class="btn-action btn-edit" onclick="app.characterManager.editCharacter('${character.id}')" title="Редактировать">
                             ✏️
                         </button>
-                        <button class="btn-action btn-delete" onclick="app.characterManager.deleteCharacter(${character.id})" title="Удалить">
+                        <button class="btn-action btn-delete" onclick="app.characterManager.deleteCharacter('${character.id}')" title="Удалить">
                             🗑️
                         </button>
                     </div>
@@ -569,7 +569,7 @@ class CharacterManager {
                 <div class="modal">
                     <div class="modal-header">
                         <h3>${character ? 'Редактирование персонажа' : 'Создание нового персонажа'}</h3>
-                        <button class="btn-close" onclick="app.characterManager.closeForm()">×</button>
+                        <button class="btn-close" id="character-modal-close">×</button>
                     </div>
                     
                     <form id="character-form" class="character-form">
@@ -587,11 +587,11 @@ class CharacterManager {
                                 </div>
                                 <div class="avatar-controls">
                                     <input type="file" id="avatar-input" accept="image/*" style="display: none;">
-                                    <button type="button" class="btn-secondary" onclick="document.getElementById('avatar-input').click()">
+                                    <button type="button" class="btn-secondary" id="avatar-select-btn">
                                         📷 Выбрать изображение
                                     </button>
                                     ${character?.avatar ? `
-                                        <button type="button" class="btn-danger" onclick="app.characterManager.removeAvatar()">
+                                        <button type="button" class="btn-danger" id="avatar-remove-btn">
                                             ❌ Удалить
                                         </button>
                                     ` : ''}
@@ -674,7 +674,7 @@ class CharacterManager {
                         </div>
                         
                         <div class="form-actions">
-                            <button type="button" class="btn-secondary" onclick="app.characterManager.closeForm()">
+                            <button type="button" class="btn-secondary" id="character-cancel-btn">
                                 Отмена
                             </button>
                             <button type="submit" class="btn-primary">
@@ -692,6 +692,7 @@ class CharacterManager {
 
     renderAbilityInput(ability, label, character) {
         const value = character?.abilities?.[ability] || 10;
+        const modifier = Math.floor((value - 10) / 2);
         return `
             <div class="ability-input">
                 <label for="ability-${ability}">${label}</label>
@@ -699,39 +700,40 @@ class CharacterManager {
                        value="${value}" min="1" max="30" 
                        class="ability-score">
                 <div class="ability-modifier">
-                    Мод: ${Math.floor((value - 10) / 2)}
+                    Мод: ${modifier >= 0 ? '+' + modifier : modifier}
                 </div>
             </div>
         `;
     }
 
     setupFormHandlers(character) {
-        const form = document.getElementById('character-form');
-        const avatarInput = document.getElementById('avatar-input');
-        const avatarPreview = document.getElementById('avatar-preview');
+        // Обработчики модального окна персонажа
+        document.getElementById('character-modal-close').addEventListener('click', () => this.closeForm());
+        document.getElementById('character-cancel-btn').addEventListener('click', () => this.closeForm());
+        document.getElementById('avatar-select-btn').addEventListener('click', () => {
+            document.getElementById('avatar-input').click();
+        });
         
-        // Обработчик выбора аватара
-        avatarInput.addEventListener('change', (e) => {
+        if (document.getElementById('avatar-remove-btn')) {
+            document.getElementById('avatar-remove-btn').addEventListener('click', () => this.removeAvatar());
+        }
+
+        document.getElementById('avatar-input').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
-                if (file.size > 2 * 1024 * 1024) { // 2MB limit
+                if (file.size > 2 * 1024 * 1024) {
                     alert('Размер файла не должен превышать 2MB');
                     return;
                 }
                 
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    avatarPreview.innerHTML = `<img src="${e.target.result}" alt="Preview" />`;
+                    const preview = document.getElementById('avatar-preview');
+                    preview.innerHTML = `<img src="${e.target.result}" alt="Preview" />`;
                     this.avatarFile = e.target.result;
                 };
                 reader.readAsDataURL(file);
             }
-        });
-
-        // Обработчик отправки формы
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.saveCharacter();
         });
 
         // Обновление модификаторов характеристик в реальном времени
@@ -742,6 +744,12 @@ class CharacterManager {
                 e.target.parentElement.querySelector('.ability-modifier').textContent = 
                     `Мод: ${modifier >= 0 ? '+' + modifier : modifier}`;
             });
+        });
+
+        // Обработчик отправки формы
+        document.getElementById('character-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveCharacter();
         });
     }
 
@@ -863,3 +871,4 @@ let app;
 document.addEventListener('DOMContentLoaded', () => {
     app = new DnDApp();
 });
+[file content end]
