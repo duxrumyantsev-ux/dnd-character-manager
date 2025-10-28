@@ -55,6 +55,11 @@ body {
     border-bottom: 2px solid var(--accent-light);
 }
 
+.tab-button:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-light);
+}
+
 .tab-pane {
     display: none;
     padding: 20px;
@@ -97,6 +102,7 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    font-size: 14px;
 }
 
 .btn-primary:hover {
@@ -113,6 +119,7 @@ body {
     border-radius: var(--border-radius);
     cursor: pointer;
     transition: all 0.3s ease;
+    font-size: 14px;
 }
 
 .btn-secondary:hover {
@@ -159,6 +166,11 @@ body {
     color: var(--text-light);
 }
 
+.empty-state p {
+    font-size: 14px;
+    opacity: 0.8;
+}
+
 /* Карточка персонажа */
 .character-card {
     background: var(--card-bg);
@@ -170,6 +182,7 @@ body {
     transition: all 0.3s ease;
     border: 1px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
+    position: relative;
 }
 
 .character-card:hover {
@@ -188,6 +201,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .character-avatar img {
@@ -218,6 +232,7 @@ body {
     font-weight: 600;
     color: var(--text-light);
     margin: 0;
+    line-height: 1.2;
 }
 
 .character-level {
@@ -227,6 +242,7 @@ body {
     border-radius: 20px;
     font-size: 12px;
     font-weight: 600;
+    white-space: nowrap;
 }
 
 .character-details {
@@ -311,12 +327,27 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     font-size: 14px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .btn-action:hover {
     background: rgba(255, 255, 255, 0.1);
     color: var(--text-light);
     transform: scale(1.1);
+}
+
+.btn-edit:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.btn-delete:hover {
+    border-color: var(--danger);
+    color: var(--danger);
 }
 
 /* Модальное окно */
@@ -333,6 +364,7 @@ body {
     z-index: 1000;
     padding: 20px;
     backdrop-filter: blur(5px);
+    animation: fadeIn 0.3s ease;
 }
 
 .modal {
@@ -344,6 +376,18 @@ body {
     overflow-y: auto;
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
 }
 
 .modal-header {
@@ -358,6 +402,7 @@ body {
     font-size: 20px;
     font-weight: 600;
     margin: 0;
+    color: var(--text-light);
 }
 
 .btn-close {
@@ -396,6 +441,8 @@ body {
     margin-bottom: 12px;
     color: var(--text-light);
     font-size: 16px;
+    border-left: 3px solid var(--accent);
+    padding-left: 8px;
 }
 
 /* Загрузка аватара */
@@ -415,6 +462,7 @@ body {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .avatar-preview img {
@@ -465,10 +513,21 @@ body {
     outline: none;
     border-color: var(--accent);
     background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.2);
 }
 
 .form-group input::placeholder {
     color: var(--text-muted);
+}
+
+.form-group input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+.form-group input[type="number"]::-webkit-outer-spin-button,
+.form-group input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 /* Сетка характеристик */
@@ -483,6 +542,13 @@ body {
     padding: 12px;
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.ability-input:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.08);
 }
 
 .ability-input label {
@@ -490,6 +556,7 @@ body {
     margin-bottom: 6px;
     font-weight: 500;
     font-size: 14px;
+    color: var(--text-light);
 }
 
 .ability-score {
@@ -502,6 +569,13 @@ body {
     text-align: center;
     font-size: 16px;
     font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.ability-score:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.15);
 }
 
 .ability-modifier {
@@ -509,6 +583,7 @@ body {
     font-size: 12px;
     color: var(--text-muted);
     text-align: center;
+    font-weight: 500;
 }
 
 /* Действия формы */
@@ -521,7 +596,7 @@ body {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Кубики (оставляем без изменений) */
+/* Кубики */
 .dice-buttons {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -537,7 +612,14 @@ body {
     border: none;
     border-radius: 10px;
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: all 0.3s ease;
+    font-weight: 600;
+}
+
+.dice:hover {
+    background: var(--accent-light);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
 }
 
 .dice:active {
@@ -548,11 +630,63 @@ body {
     text-align: center;
     font-size: 2em;
     margin: 20px 0;
+    padding: 20px;
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .result-number {
     color: var(--accent);
     font-weight: bold;
+    font-size: 1.5em;
+}
+
+/* Стили для других вкладок */
+#spells, #combat {
+    max-width: 100%;
+}
+
+#spell-search {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--border-radius);
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-light);
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+#spell-search:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.spell-card {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.spell-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.spell-card h3 {
+    color: var(--accent);
+    margin-bottom: 8px;
+    font-size: 16px;
+}
+
+.spell-card p {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
 }
 
 /* Адаптивность */
@@ -570,11 +704,24 @@ body {
     .character-card {
         flex-direction: column;
         text-align: center;
+        align-items: center;
+    }
+    
+    .character-info {
+        width: 100%;
+    }
+    
+    .character-header {
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
     }
     
     .character-actions {
         flex-direction: row;
         justify-content: center;
+        width: 100%;
+        margin-top: 12px;
     }
     
     .avatar-upload {
@@ -599,12 +746,21 @@ body {
         margin: 10px;
         max-height: calc(100vh - 20px);
     }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .tab-button {
+        padding: 12px 8px;
+        font-size: 12px;
+    }
 }
 
 @media (max-width: 480px) {
     .tab-button {
-        padding: 12px 8px;
-        font-size: 12px;
+        padding: 10px 6px;
+        font-size: 11px;
     }
     
     .abilities-grid {
@@ -615,7 +771,60 @@ body {
         grid-template-columns: repeat(2, 1fr);
     }
     
-    .form-actions {
-        flex-direction: column;
+    .character-avatar {
+        width: 60px;
+        height: 60px;
     }
+    
+    .avatar-preview {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .modal-header {
+        padding: 16px;
+    }
+    
+    .character-form {
+        padding: 16px;
+    }
+    
+    .characters-header h2 {
+        font-size: 20px;
+    }
+}
+
+/* Утилиты */
+.hidden {
+    display: none !important;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.mt-1 { margin-top: 8px; }
+.mt-2 { margin-top: 16px; }
+.mt-3 { margin-top: 24px; }
+.mb-1 { margin-bottom: 8px; }
+.mb-2 { margin-bottom: 16px; }
+.mb-3 { margin-bottom: 24px; }
+
+/* Полоса прокрутки */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-light);
 }
