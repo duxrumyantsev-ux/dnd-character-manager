@@ -1,16 +1,16 @@
 const CACHE_NAME = 'dnd-app-v3';
 const urlsToCache = [
-    '/',
-    '/index.html',
-    '/css/style.css',
-    '/js/app.js',
-    '/js/db.js',
-    '/js/auth.js',
-    '/js/spell-structure.js',
-    '/js/spell-loader.js',
-    '/js/spells-manager.js',
-    '/data/spells.json',
-    '/manifest.json'
+    './',
+    './index.html',
+    './css/style.css',
+    './js/app.js',
+    './js/db.js',
+    './js/auth.js',
+    './js/spell-structure.js',
+    './js/spell-loader.js',
+    './js/spells-manager.js',
+    './data/spells.json',
+    './manifest.json'
 ];
 
 // Установка Service Worker
