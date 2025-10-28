@@ -1,14 +1,19 @@
-const CACHE_NAME = 'dnd-app-v2'; // Увеличиваем версию
+const CACHE_NAME = 'dnd-app-v3';
 const urlsToCache = [
     '/',
     '/index.html',
     '/css/style.css',
     '/js/app.js',
-    '/js/db.js', // Добавляем новый файл
-    '/manifest.json',
-    '/sw.js'
+    '/js/db.js',
+    '/js/auth.js',
+    '/js/spell-structure.js',
+    '/js/spell-loader.js',
+    '/js/spells-manager.js',
+    '/data/spells.json',
+    '/manifest.json'
 ];
 
+// Установка Service Worker
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -16,6 +21,7 @@ self.addEventListener('install', event => {
     );
 });
 
+// Обработка запросов
 self.addEventListener('fetch', event => {
     event.respondWith(
         caches.match(event.request)
