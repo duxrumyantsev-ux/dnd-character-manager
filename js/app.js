@@ -436,6 +436,10 @@ class DnDApp {
     async roll3DDice(sides) {
         if (!diceEngine) {
             console.error('Dice engine not initialized');
+            // Fallback: простой случайный бросок
+            const result = Math.floor(Math.random() * sides) + 1;
+            this.showNumericResult(result, sides, 1, 0, [result]);
+            this.saveToDiceHistory([result], result, sides, 1, 0);
             return;
         }
         
@@ -449,6 +453,11 @@ class DnDApp {
     async rollMultiple3DDice(sides, count, modifier) {
         if (!diceEngine) {
             console.error('Dice engine not initialized');
+            // Fallback: простые случайные броски
+            const results = Array.from({length: count}, () => Math.floor(Math.random() * sides) + 1);
+            const total = results.reduce((sum, val) => sum + val, 0) + modifier;
+            this.showNumericResult(total, sides, count, modifier, results);
+            this.saveToDiceHistory(results, total, sides, count, modifier);
             return;
         }
         
@@ -478,7 +487,32 @@ class DnDApp {
         this.showNumericResult(result, 20, 2, 0, results);
         this.saveToDiceHistory(results, result, 20, 2, 0);
     }
-
+    showNumericResult(total, sides, count, modifier, results) {
+        const resultContainer = document.getElementById('dice-result');
+        
+        let formula = `${count}d${sides}`;
+        if (modifier > 0) {
+            formula += `+${modifier}`;
+        } else if (modifier < 0) {
+            formula += `${modifier}`;
+        }
+        
+        let breakdown = '';
+        if (count > 1) {
+            breakdown = ` (${results.join(' + ')})`;
+            if (modifier !== 0) {
+                breakdown += ` ${modifier > 0 ? '+' : ''}${modifier}`;
+            }
+        }
+        
+        resultContainer.innerHTML = `
+            <div class="dice-result-text">
+                <div class="dice-formula">${formula}</div>
+                <div class="dice-total">${total}</div>
+                <div class="dice-roll-breakdown">${breakdown}</div>
+            </div>
+        `;
+    }
     saveToDiceHistory(results, total, sides, count, modifier) {
         const rollData = {
             timestamp: new Date().toISOString(),
@@ -1372,4 +1406,6 @@ class CharacterManager {
 let app;
 document.addEventListener('DOMContentLoaded', () => {
     app = new DnDApp();
+    // Делаем app глобально доступной для dice-engine
+    window.app = app;
 });
