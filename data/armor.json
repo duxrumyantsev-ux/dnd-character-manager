@@ -1,0 +1,37 @@
+{
+  "armor": [
+    {
+      "id": "chain-mail",
+      "name": "Кольчуга",
+      "type": "Тяжелая",
+      "cost": "75 зм",
+      "armorClass": "16",
+      "strengthRequirement": "13",
+      "stealthDisadvantage": true,
+      "weight": "55 фунтов",
+      "description": "Тяжелая броня из переплетенных металлических колец. Предоставляет отличную защиту, но затрудняет скрытность."
+    },
+    {
+      "id": "leather-armor",
+      "name": "Кожаный доспех",
+      "type": "Легкая",
+      "cost": "10 зм",
+      "armorClass": "11 + модификатор Ловкости",
+      "strengthRequirement": "-",
+      "stealthDisadvantage": false,
+      "weight": "10 фунтов",
+      "description": "Кожаный куртка и штаны из закаленной кожи. Не ограничивает движения и популярна среди плутов."
+    },
+    {
+      "id": "shield",
+      "name": "Щит",
+      "type": "Щит",
+      "cost": "10 зм",
+      "armorClass": "+2",
+      "strengthRequirement": "-",
+      "stealthDisadvantage": false,
+      "weight": "6 фунтов",
+      "description": "Деревянный или металлический щит, который можно использовать для дополнительной защиты."
+    }
+  ]
+}

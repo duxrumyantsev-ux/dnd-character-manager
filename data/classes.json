@@ -1,0 +1,58 @@
+{
+    "classes": [
+        {
+            "id": "fighter",
+            "name": "Воин",
+            "description": "Мастер боевых искусств, владеющий оружием и доспехами.",
+            "hitDice": 10,
+            "primaryAbility": ["strength", "dexterity"],
+            "savingThrows": ["strength", "constitution"],
+            "proficiencies": {
+                "armor": ["Лёгкие доспехи", "Средние доспехи", "Тяжёлые доспехи", "Щиты"],
+                "weapons": ["Простое оружие", "Воинское оружие"],
+                "tools": []
+            },
+            "subclasses": [
+                {
+                    "id": "champion",
+                    "name": "Победитель",
+                    "description": "Мастер оружия, сосредоточенный на бою.",
+                    "availableAt": 3
+                },
+                {
+                    "id": "battle_master",
+                    "name": "Воитель",
+                    "description": "Тактический эксперт, использующий приёмы.",
+                    "availableAt": 3
+                }
+            ]
+        },
+        {
+            "id": "wizard",
+            "name": "Волшебник",
+            "description": "Учёный-заклинатель, способный изменять реальность.",
+            "hitDice": 6,
+            "primaryAbility": ["intelligence"],
+            "savingThrows": ["intelligence", "wisdom"],
+            "proficiencies": {
+                "armor": [],
+                "weapons": ["Кинжалы", "Дротики", "Пращи", "Посохи", "Лёгкие арбалеты"],
+                "tools": []
+            },
+            "subclasses": [
+                {
+                    "id": "evocation",
+                    "name": "Школа воплощения",
+                    "description": "Специалист по разрушительной магии.",
+                    "availableAt": 2
+                },
+                {
+                    "id": "abjuration",
+                    "name": "Школа ограждения",
+                    "description": "Мастер защитной магии.",
+                    "availableAt": 2
+                }
+            ]
+        }
+    ]
+}
