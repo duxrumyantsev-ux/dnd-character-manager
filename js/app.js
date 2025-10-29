@@ -1,8 +1,10 @@
+// Главный класс приложения
 class DnDApp {
     constructor() {
         this.db = database;
         this.auth = authManager;
         this.spellLoader = spellLoader;
+        this.gameDataLoader = gameDataLoader;
         this.currentTab = 'characters';
         this.characters = [];
         this.currentSpellFilters = {
@@ -22,6 +24,9 @@ class DnDApp {
             // Настраиваем обработчики аутентификации
             this.auth.onAuthStateChanged = (user) => this.handleAuthStateChange(user);
             
+            // Загружаем игровые данные
+            await this.loadGameData();
+            
             this.initUI();
             this.initTabs();
             this.initDice();
@@ -32,6 +37,24 @@ class DnDApp {
             
         } catch (error) {
             console.error('Failed to initialize app:', error);
+        }
+    }
+
+    async loadGameData() {
+        try {
+            // Пытаемся загрузить из Firestore, если нет - из JSON
+            let success = await this.gameDataLoader.loadFromFirestore();
+            if (!success) {
+                success = await this.gameDataLoader.loadFromJSON();
+            }
+            
+            if (success) {
+                console.log('Game data loaded successfully');
+            } else {
+                console.error('Failed to load game data');
+            }
+        } catch (error) {
+            console.error('Error loading game data:', error);
         }
     }
 
@@ -387,7 +410,7 @@ class DnDApp {
 
     // Менеджер персонажей
     initCharacterManager() {
-        this.characterManager = new CharacterManager(this.db, this.auth);
+        this.characterManager = new CharacterManager(this.db, this.auth, this.gameDataLoader);
         const addCharacterBtn = document.getElementById('add-character');
         if (addCharacterBtn) {
             addCharacterBtn.addEventListener('click', () => {
@@ -493,9 +516,10 @@ class DnDApp {
 
 // Менеджер персонажей
 class CharacterManager {
-    constructor(db, auth) {
+    constructor(db, auth, gameDataLoader) {
         this.db = db;
         this.auth = auth;
+        this.gameDataLoader = gameDataLoader;
         this.characters = [];
         this.avatarFile = null;
     }
@@ -548,17 +572,17 @@ class CharacterManager {
                     <div class="character-info">
                         <div class="character-header">
                             <h3 class="character-name">${character.name}</h3>
-                            <span class="character-level">Ур. ${character.level}</span>
+                            <span class="character-level">${character.class || 'Неизвестно'} ${character.level} ур.</span>
                         </div>
                         
                         <div class="character-details">
                             <div class="detail-item">
                                 <span class="detail-label">Раса:</span>
-                                <span class="detail-value">${character.race}</span>
+                                <span class="detail-value">${character.race || 'Не указана'}</span>
                             </div>
                             <div class="detail-item">
-                                <span class="detail-label">Пол:</span>
-                                <span class="detail-value">${character.gender || 'Не указан'}</span>
+                                <span class="detail-label">Мировоззрение:</span>
+                                <span class="detail-value">${character.alignment || 'Не указано'}</span>
                             </div>
                         </div>
                         
@@ -598,7 +622,7 @@ class CharacterManager {
         
         const formHtml = `
             <div class="modal-overlay" id="character-modal">
-                <div class="modal">
+                <div class="modal" style="max-width: 800px;">
                     <div class="modal-header">
                         <h3>${character ? 'Редактирование персонажа' : 'Создание нового персонажа'}</h3>
                         <button class="btn-close" onclick="app.characterManager.closeForm()">×</button>
@@ -645,31 +669,90 @@ class CharacterManager {
                                     <label for="character-race">Раса *</label>
                                     <select id="character-race" required>
                                         <option value="">Выберите расу</option>
-                                        <option value="Человек" ${character?.race === 'Человек' ? 'selected' : ''}>Человек</option>
-                                        <option value="Эльф" ${character?.race === 'Эльф' ? 'selected' : ''}>Эльф</option>
-                                        <option value="Дварф" ${character?.race === 'Дварф' ? 'selected' : ''}>Дварф</option>
-                                        <option value="Халфлинг" ${character?.race === 'Халфлинг' ? 'selected' : ''}>Халфлинг</option>
-                                        <option value="Гном" ${character?.race === 'Гном' ? 'selected' : ''}>Гном</option>
-                                        <option value="Полуорк" ${character?.race === 'Полуорк' ? 'selected' : ''}>Полуорк</option>
-                                        <option value="Тифлинг" ${character?.race === 'Тифлинг' ? 'selected' : ''}>Тифлинг</option>
-                                        <option value="Драконорожденный" ${character?.race === 'Драконорожденный' ? 'selected' : ''}>Драконорожденный</option>
+                                        ${this.renderRaceOptions(character)}
                                     </select>
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="character-gender">Пол</label>
-                                    <select id="character-gender">
-                                        <option value="">Не указан</option>
-                                        <option value="Мужской" ${character?.gender === 'Мужской' ? 'selected' : ''}>Мужской</option>
-                                        <option value="Женский" ${character?.gender === 'Женский' ? 'selected' : ''}>Женский</option>
-                                        <option value="Другой" ${character?.gender === 'Другой' ? 'selected' : ''}>Другой</option>
+                                    <label for="character-class">Класс *</label>
+                                    <select id="character-class" required>
+                                        <option value="">Выберите класс</option>
+                                        ${this.renderClassOptions(character)}
                                     </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="character-subclass">Подкласс</label>
+                                    <select id="character-subclass">
+                                        <option value="">Выберите подкласс</option>
+                                        ${this.renderSubclassOptions(character)}
+                                    </select>
+                                    <small id="subclass-hint" class="form-hint" style="display: none;"></small>
                                 </div>
                                 
                                 <div class="form-group">
                                     <label for="character-level">Уровень *</label>
                                     <input type="number" id="character-level" value="${character?.level || 1}" 
                                            min="1" max="20" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="character-background">Предыстория</label>
+                                    <select id="character-background">
+                                        <option value="">Выберите предысторию</option>
+                                        ${this.renderBackgroundOptions(character)}
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="character-alignment">Мировоззрение</label>
+                                    <select id="character-alignment">
+                                        <option value="">Выберите мировоззрение</option>
+                                        ${ALIGNMENTS.map(align => 
+                                            `<option value="${align}" ${character?.alignment === align ? 'selected' : ''}>${align}</option>`
+                                        ).join('')}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Характеристики -->
+                        <div class="form-section">
+                            <label class="section-label">Основные характеристики</label>
+                            <div class="abilities-grid">
+                                ${this.renderAbilityInput('strength', '💪 Сила', character)}
+                                ${this.renderAbilityInput('dexterity', '🎯 Ловкость', character)}
+                                ${this.renderAbilityInput('constitution', '❤️ Телосложение', character)}
+                                ${this.renderAbilityInput('intelligence', '📚 Интеллект', character)}
+                                ${this.renderAbilityInput('wisdom', '👁️ Мудрость', character)}
+                                ${this.renderAbilityInput('charisma', '💫 Харизма', character)}
+                            </div>
+                        </div>
+                        
+                        <!-- Навыки -->
+                        <div class="form-section">
+                            <label class="section-label">Навыки</label>
+                            <div class="skills-grid" id="skills-container">
+                                ${this.renderSkills(character)}
+                            </div>
+                        </div>
+                        
+                        <!-- Владения -->
+                        <div class="form-section">
+                            <label class="section-label">Владения</label>
+                            <div class="proficiencies-grid">
+                                <div class="form-group">
+                                    <label>Языки</label>
+                                    <div class="checkbox-group" id="languages-container">
+                                        ${this.renderLanguageOptions(character)}
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Инструменты</label>
+                                    <div class="checkbox-group" id="tools-container">
+                                        ${this.renderToolOptions(character)}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -692,19 +775,6 @@ class CharacterManager {
                             </div>
                         </div>
                         
-                        <!-- Характеристики -->
-                        <div class="form-section">
-                            <label class="section-label">Основные характеристики</label>
-                            <div class="abilities-grid">
-                                ${this.renderAbilityInput('strength', '💪 Сила', character)}
-                                ${this.renderAbilityInput('dexterity', '🎯 Ловкость', character)}
-                                ${this.renderAbilityInput('constitution', '❤️ Телосложение', character)}
-                                ${this.renderAbilityInput('intelligence', '📚 Интеллект', character)}
-                                ${this.renderAbilityInput('wisdom', '👁️ Мудрость', character)}
-                                ${this.renderAbilityInput('charisma', '💫 Харизма', character)}
-                            </div>
-                        </div>
-                        
                         <div class="form-actions">
                             <button type="button" class="btn-secondary" onclick="app.characterManager.closeForm()">
                                 Отмена
@@ -720,6 +790,159 @@ class CharacterManager {
 
         document.body.insertAdjacentHTML('beforeend', formHtml);
         this.setupFormHandlers(character);
+    }
+
+    // Вспомогательные методы для рендеринга опций
+    renderRaceOptions(character) {
+        const races = this.gameDataLoader.getAvailableRaces();
+        if (races.length === 0) {
+            return '<option value="">Загрузка рас...</option>';
+        }
+        return races.map(race => 
+            `<option value="${race.id}" ${character?.raceId === race.id ? 'selected' : ''}>
+                ${race.name}
+            </option>`
+        ).join('');
+    }
+
+    renderClassOptions(character) {
+        const classes = this.gameDataLoader.getAvailableClasses();
+        if (classes.length === 0) {
+            return '<option value="">Загрузка классов...</option>';
+        }
+        return classes.map(cls => 
+            `<option value="${cls.id}" ${character?.classId === cls.id ? 'selected' : ''}>
+                ${cls.name}
+            </option>`
+        ).join('');
+    }
+
+    renderSubclassOptions(character) {
+        if (!character?.classId) return '';
+        
+        const availableSubclasses = this.gameDataLoader.getAvailableSubclasses(character);
+        return availableSubclasses.map(subclass => 
+            `<option value="${subclass.id}" ${character?.subclassId === subclass.id ? 'selected' : ''}>
+                ${subclass.name}
+            </option>`
+        ).join('');
+    }
+
+    renderBackgroundOptions(character) {
+        const backgrounds = this.gameDataLoader.getAvailableBackgrounds();
+        if (backgrounds.length === 0) {
+            return '<option value="">Загрузка предысторий...</option>';
+        }
+        return backgrounds.map(bg => 
+            `<option value="${bg.id}" ${character?.backgroundId === bg.id ? 'selected' : ''}>
+                ${bg.name}
+            </option>`
+        ).join('');
+    }
+
+    renderSkills(character) {
+        let html = '';
+        const skills = character?.skills || this.initializeSkills();
+        
+        for (const [skillId, skillData] of Object.entries(skills)) {
+            const skillName = SKILL_NAMES[skillId] || skillId;
+            const ability = this.getSkillAbility(skillId);
+            const abilityName = ABILITY_NAMES[ability];
+            
+            html += `
+                <div class="skill-item">
+                    <label class="skill-checkbox">
+                        <input type="checkbox" id="skill-${skillId}" 
+                               ${skillData.proficient ? 'checked' : ''}>
+                        <span class="checkmark"></span>
+                        ${skillName}
+                        <small class="skill-ability">(${abilityName})</small>
+                    </label>
+                    <label class="expertise-checkbox">
+                        <input type="checkbox" id="expertise-${skillId}" 
+                               ${skillData.expertise ? 'checked' : ''}
+                               ${!skillData.proficient ? 'disabled' : ''}>
+                        <span class="checkmark expert"></span>
+                        Эксперт
+                    </label>
+                </div>
+            `;
+        }
+        return html;
+    }
+
+    renderLanguageOptions(character) {
+        const languages = this.gameDataLoader.getAvailableLanguages();
+        if (languages.length === 0) {
+            return '<div class="checkbox-item">Загрузка языков...</div>';
+        }
+        return languages.map(lang => {
+            const isSelected = character?.proficiencies?.languages?.includes(lang.id);
+            return `
+                <label class="checkbox-item">
+                    <input type="checkbox" value="${lang.id}" 
+                           ${isSelected ? 'checked' : ''}>
+                    <span class="checkmark"></span>
+                    ${lang.name}
+                </label>
+            `;
+        }).join('');
+    }
+
+    renderToolOptions(character) {
+        const tools = this.gameDataLoader.getAvailableTools();
+        if (tools.length === 0) {
+            return '<div class="checkbox-item">Загрузка инструментов...</div>';
+        }
+        return tools.map(tool => {
+            const isSelected = character?.proficiencies?.tools?.includes(tool.id);
+            return `
+                <label class="checkbox-item">
+                    <input type="checkbox" value="${tool.id}" 
+                           ${isSelected ? 'checked' : ''}>
+                    <span class="checkmark"></span>
+                    ${tool.name}
+                </label>
+            `;
+        }).join('');
+    }
+
+    initializeSkills() {
+        return {
+            acrobatics: { proficient: false, expertise: false },
+            animalHandling: { proficient: false, expertise: false },
+            arcana: { proficient: false, expertise: false },
+            athletics: { proficient: false, expertise: false },
+            deception: { proficient: false, expertise: false },
+            history: { proficient: false, expertise: false },
+            insight: { proficient: false, expertise: false },
+            intimidation: { proficient: false, expertise: false },
+            investigation: { proficient: false, expertise: false },
+            medicine: { proficient: false, expertise: false },
+            nature: { proficient: false, expertise: false },
+            perception: { proficient: false, expertise: false },
+            performance: { proficient: false, expertise: false },
+            persuasion: { proficient: false, expertise: false },
+            religion: { proficient: false, expertise: false },
+            sleightOfHand: { proficient: false, expertise: false },
+            stealth: { proficient: false, expertise: false },
+            survival: { proficient: false, expertise: false }
+        };
+    }
+
+    getSkillAbility(skill) {
+        const skillAbilities = {
+            strength: ['athletics'],
+            dexterity: ['acrobatics', 'sleightOfHand', 'stealth'],
+            intelligence: ['arcana', 'history', 'investigation', 'nature', 'religion'],
+            wisdom: ['animalHandling', 'insight', 'medicine', 'perception', 'survival'],
+            charisma: ['deception', 'intimidation', 'performance', 'persuasion']
+        };
+        
+        for (const [ability, skills] of Object.entries(skillAbilities)) {
+            if (skills.includes(skill)) return ability;
+        }
+        return 'intelligence';
     }
 
     renderAbilityInput(ability, label, character) {
@@ -742,7 +965,12 @@ class CharacterManager {
         const form = document.getElementById('character-form');
         const avatarInput = document.getElementById('avatar-input');
         const avatarPreview = document.getElementById('avatar-preview');
+        const classSelect = document.getElementById('character-class');
+        const levelInput = document.getElementById('character-level');
+        const subclassSelect = document.getElementById('character-subclass');
+        const subclassHint = document.getElementById('subclass-hint');
         
+        // Обработчик выбора аватара
         if (avatarInput) {
             avatarInput.addEventListener('change', (e) => {
                 const file = e.target.files[0];
@@ -764,6 +992,69 @@ class CharacterManager {
             });
         }
 
+        // Обработчик изменения класса и уровня
+        if (classSelect && levelInput && subclassSelect && subclassHint) {
+            const updateSubclassOptions = () => {
+                const classId = classSelect.value;
+                const level = parseInt(levelInput.value) || 1;
+                
+                if (!classId) {
+                    subclassSelect.innerHTML = '<option value="">Выберите подкласс</option>';
+                    subclassHint.style.display = 'none';
+                    return;
+                }
+                
+                const tempCharacter = { classId, level };
+                const availableSubclasses = this.gameDataLoader.getAvailableSubclasses(tempCharacter);
+                
+                subclassSelect.innerHTML = '<option value="">Выберите подкласс</option>';
+                availableSubclasses.forEach(subclass => {
+                    const option = document.createElement('option');
+                    option.value = subclass.id;
+                    option.textContent = subclass.name;
+                    subclassSelect.appendChild(option);
+                });
+                
+                // Показываем подсказку о доступности подклассов
+                const classData = this.gameDataLoader.getClassById(classId);
+                if (classData) {
+                    const subclasses = classData.subclasses || [];
+                    if (subclasses.length > 0) {
+                        const minLevel = Math.min(...subclasses.map(s => s.availableAt || 3));
+                        if (level < minLevel) {
+                            subclassHint.textContent = `Подклассы доступны с ${minLevel} уровня`;
+                            subclassHint.style.display = 'block';
+                        } else {
+                            subclassHint.style.display = 'none';
+                        }
+                    }
+                }
+            };
+            
+            classSelect.addEventListener('change', updateSubclassOptions);
+            levelInput.addEventListener('input', updateSubclassOptions);
+            
+            // Инициализируем при загрузке
+            updateSubclassOptions();
+        }
+
+        // Обработчик навыков
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            if (checkbox.id.startsWith('skill-')) {
+                checkbox.addEventListener('change', (e) => {
+                    const skillId = e.target.id.replace('skill-', '');
+                    const expertiseCheckbox = document.getElementById(`expertise-${skillId}`);
+                    if (expertiseCheckbox) {
+                        expertiseCheckbox.disabled = !e.target.checked;
+                        if (!e.target.checked) {
+                            expertiseCheckbox.checked = false;
+                        }
+                    }
+                });
+            }
+        });
+
+        // Обработчик отправки формы
         if (form) {
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -771,7 +1062,7 @@ class CharacterManager {
             });
         }
 
-        // Обновление модификаторов характеристик в реальном времени
+        // Обновление модификаторов характеристик
         document.querySelectorAll('.ability-score').forEach(input => {
             input.addEventListener('input', (e) => {
                 const value = parseInt(e.target.value) || 10;
@@ -811,9 +1102,18 @@ class CharacterManager {
         // Сбор данных формы
         const characterData = {
             name: document.getElementById('character-name').value,
-            race: document.getElementById('character-race').value,
-            gender: document.getElementById('character-gender').value,
+            raceId: document.getElementById('character-race').value,
+            race: this.gameDataLoader.getRaceById(document.getElementById('character-race').value)?.name || '',
+            classId: document.getElementById('character-class').value,
+            class: this.gameDataLoader.getClassById(document.getElementById('character-class').value)?.name || '',
+            subclassId: document.getElementById('character-subclass').value,
+            subclass: this.gameDataLoader.getSubclassesForClass(document.getElementById('character-class').value)
+                        .find(sc => sc.id === document.getElementById('character-subclass').value)?.name || '',
             level: parseInt(document.getElementById('character-level').value),
+            backgroundId: document.getElementById('character-background').value,
+            background: this.gameDataLoader.getBackgroundById(document.getElementById('character-background').value)?.name || '',
+            alignment: document.getElementById('character-alignment').value,
+            gender: document.getElementById('character-gender')?.value || '',
             avatar: this.avatarFile,
             abilities: {
                 strength: parseInt(document.getElementById('ability-strength').value),
@@ -823,6 +1123,8 @@ class CharacterManager {
                 wisdom: parseInt(document.getElementById('ability-wisdom').value),
                 charisma: parseInt(document.getElementById('ability-charisma').value)
             },
+            skills: this.collectSkillsData(),
+            proficiencies: this.collectProficienciesData(),
             combat: {
                 maxHP: parseInt(document.getElementById('character-max-hp').value),
                 currentHP: parseInt(document.getElementById('character-current-hp').value),
@@ -863,6 +1165,44 @@ class CharacterManager {
             console.error('Error saving character:', error);
             alert('Ошибка при сохранении персонажа: ' + error.message);
         }
+    }
+
+    collectSkillsData() {
+        const skills = this.initializeSkills();
+        for (const skillId of Object.keys(skills)) {
+            const skillCheckbox = document.getElementById(`skill-${skillId}`);
+            const expertiseCheckbox = document.getElementById(`expertise-${skillId}`);
+            
+            if (skillCheckbox) {
+                skills[skillId].proficient = skillCheckbox.checked;
+            }
+            if (expertiseCheckbox) {
+                skills[skillId].expertise = expertiseCheckbox.checked;
+            }
+        }
+        return skills;
+    }
+
+    collectProficienciesData() {
+        const languages = [];
+        const tools = [];
+        
+        // Собираем выбранные языки
+        document.querySelectorAll('#languages-container input[type="checkbox"]:checked').forEach(checkbox => {
+            languages.push(checkbox.value);
+        });
+        
+        // Собираем выбранные инструменты
+        document.querySelectorAll('#tools-container input[type="checkbox"]:checked').forEach(checkbox => {
+            tools.push(checkbox.value);
+        });
+        
+        return {
+            languages,
+            tools,
+            armor: [],
+            weapons: []
+        };
     }
 
     async editCharacter(characterId) {
