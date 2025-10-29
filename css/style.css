@@ -1768,6 +1768,7 @@ input[type="checkbox"]:checked + .checkmark::after {
 }*/
 /* Улучшенные стили для 3D кубиков с цветными гранями */
 /* Стили для контейнера 3D кубиков */
+/* Улучшенные стили для контейнера 3D кубиков */
 #dice-result {
     width: 100%;
     height: 400px;
@@ -1777,28 +1778,62 @@ input[type="checkbox"]:checked + .checkmark::after {
     border: 2px solid rgba(255, 255, 255, 0.1);
     overflow: hidden;
     margin: 20px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .dice-loading {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
     color: var(--text-light);
     font-size: 1.2em;
     text-align: center;
     z-index: 10;
 }
 
-/* Адаптивность для мобильных устройств */
+.dice-result-text {
+    text-align: center;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius);
+    border-left: 4px solid var(--accent);
+}
+
+.dice-formula {
+    font-size: 1.2em;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+
+.dice-total {
+    font-size: 3em;
+    font-weight: bold;
+    color: var(--accent);
+    text-shadow: 0 0 10px rgba(233, 69, 96, 0.5);
+    margin: 10px 0;
+}
+
+.dice-roll-breakdown {
+    font-size: 1em;
+    color: var(--text-muted);
+}
+
+/* Адаптивность */
 @media (max-width: 768px) {
     #dice-result {
         height: 300px;
+    }
+    
+    .dice-total {
+        font-size: 2.5em;
     }
 }
 
 @media (max-width: 480px) {
     #dice-result {
         height: 250px;
+    }
+    
+    .dice-total {
+        font-size: 2em;
     }
 }
