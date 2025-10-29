@@ -2,19 +2,20 @@ class AuthManager {
     constructor() {
         this.user = null;
         this.isInitialized = false;
+        this.onAuthStateChanged = null; // Колбэк для основного приложения
         this.initFirebase();
     }
 
     initFirebase() {
-       const firebaseConfig = {
-    apiKey: "AIzaSyB0GvcaOCDiRcGh3MUBliarT6TwPbE5g4A",
-    authDomain: "dnd-character-manager-10ea1.firebaseapp.com",
-    projectId: "dnd-character-manager-10ea1",
-    storageBucket: "dnd-character-manager-10ea1.firebasestorage.app",
-    messagingSenderId: "449897270877",
-    appId: "1:449897270877:web:8bbadb8b8a31f2f98a07b4",
-    measurementId: "G-1DZSG1MCDS"
-  };
+        const firebaseConfig = {
+            apiKey: "AIzaSyB0GvcaOCDiRcGh3MUBliarT6TwPbE5g4A",
+            authDomain: "dnd-character-manager-10ea1.firebaseapp.com",
+            projectId: "dnd-character-manager-10ea1",
+            storageBucket: "dnd-character-manager-10ea1.firebasestorage.app",
+            messagingSenderId: "449897270877",
+            appId: "1:449897270877:web:8bbadb8b8a31f2f98a07b4",
+            measurementId: "G-1DZSG1MCDS"
+        };
 
         try {
             firebase.initializeApp(firebaseConfig);
@@ -31,28 +32,49 @@ class AuthManager {
     setupAuthListener() {
         this.auth.onAuthStateChanged((user) => {
             this.user = user;
-            this.onAuthStateChanged(user);
+            console.log('Auth state changed:', user ? user.email : 'No user');
+            
+            // Вызываем колбэк основного приложения
+            if (this.onAuthStateChanged) {
+                this.onAuthStateChanged(user);
+            }
+            
+            // Обновляем UI напрямую на всякий случай
+            this.updateAuthUI(user);
         });
     }
 
-    onAuthStateChanged(user) {
-        // Этот метод будет переопределен в основном приложении
-        if (user) {
-            console.log('User signed in:', user.email);
-            document.getElementById('auth-section').style.display = 'none';
-            document.getElementById('user-section').style.display = 'flex';
-            document.getElementById('user-email').textContent = user.email;
+    updateAuthUI(user) {
+        const authSection = document.getElementById('auth-section');
+        const userSection = document.getElementById('user-section');
+        const userEmail = document.getElementById('user-email');
+        const migrateBtn = document.getElementById('migrate-data');
+
+        if (user && authSection && userSection && userEmail) {
+            authSection.style.display = 'none';
+            userSection.style.display = 'flex';
+            userEmail.textContent = user.email;
             
-            // Загружаем и устанавливаем аватар при входе
+            // Загружаем и устанавливаем аватар
             this.getUserProfile().then(profile => {
-                if (profile && profile.avatar) {
-                    document.getElementById('user-avatar').textContent = profile.avatar;
+                const userAvatar = document.getElementById('user-avatar');
+                if (profile && profile.avatar && userAvatar) {
+                    userAvatar.textContent = profile.avatar;
                 }
             });
-        } else {
-            console.log('User signed out');
-            document.getElementById('auth-section').style.display = 'flex';
-            document.getElementById('user-section').style.display = 'none';
+
+            // Показываем кнопку миграции
+            if (migrateBtn) {
+                setTimeout(() => {
+                    database.getLocalCharacters().then(localChars => {
+                        migrateBtn.style.display = localChars.length > 0 ? 'inline-block' : 'none';
+                    });
+                }, 1000);
+            }
+        } else if (authSection && userSection) {
+            authSection.style.display = 'flex';
+            userSection.style.display = 'none';
+            if (migrateBtn) migrateBtn.style.display = 'none';
         }
     }
 
@@ -60,16 +82,14 @@ class AuthManager {
         try {
             const userCredential = await this.auth.createUserWithEmailAndPassword(email, password);
             
-            // Обновляем профиль с именем пользователя
             await userCredential.user.updateProfile({
                 displayName: username
             });
 
-            // Создаем запись пользователя в Firestore с аватаром по умолчанию
             await this.db.collection('users').doc(userCredential.user.uid).set({
                 username: username,
                 email: email,
-                avatar: '😊', // Аватар по умолчанию
+                avatar: '😊',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 lastLogin: firebase.firestore.FieldValue.serverTimestamp()
             });
@@ -85,7 +105,6 @@ class AuthManager {
         try {
             const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
             
-            // Обновляем время последнего входа
             await this.db.collection('users').doc(userCredential.user.uid).update({
                 lastLogin: firebase.firestore.FieldValue.serverTimestamp()
             });
@@ -109,17 +128,21 @@ class AuthManager {
 
     async updateProfile(username, avatar) {
         try {
-            // Обновляем профиль в Firebase Auth
             await this.auth.currentUser.updateProfile({
                 displayName: username
             });
 
-            // Обновляем в Firestore
             await this.db.collection('users').doc(this.user.uid).update({
                 username: username,
                 avatar: avatar,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
+
+            // Обновляем аватар в UI
+            const userAvatar = document.getElementById('user-avatar');
+            if (userAvatar) {
+                userAvatar.textContent = avatar;
+            }
 
             return { success: true };
         } catch (error) {
@@ -151,7 +174,7 @@ class AuthManager {
     }
 
     async syncCharacterToCloud(character) {
-        if (!this.user) return null;
+        if (!this.user) return { success: false, error: 'Not authenticated' };
 
         try {
             const characterData = {
@@ -161,15 +184,15 @@ class AuthManager {
             };
 
             let result;
-            if (character.id) {
-                // Обновляем существующего персонажа
+            if (character.id && character.id.toString().length < 20) {
+                // Это cloud ID - обновляем существующего персонажа
                 result = await this.db.collection('characters').doc(character.id.toString()).update(characterData);
+                return { success: true, id: character.id };
             } else {
                 // Создаем нового персонажа
                 result = await this.db.collection('characters').add(characterData);
+                return { success: true, id: result.id };
             }
-
-            return { success: true, id: result.id };
         } catch (error) {
             console.error('Sync character error:', error);
             return { success: false, error: error.message };
@@ -214,34 +237,6 @@ class AuthManager {
     isSignedIn() {
         return this.user !== null;
     }
-    async syncAllCharacters(characters) {
-        if (!this.user) return { success: false, error: 'Not authenticated' };
-
-        try {
-            const results = [];
-            for (const character of characters) {
-                const result = await this.syncCharacterToCloud(character);
-                results.push(result);
-            }
-            return { success: true, results };
-        } catch (error) {
-            console.error('Sync all characters error:', error);
-            return { success: false, error: error.message };
-        }
-    }
-
-    async getCloudCharacter(characterId) {
-        if (!this.user) return null;
-
-        try {
-            const doc = await this.db.collection('characters').doc(characterId).get();
-            return doc.exists ? { id: doc.id, ...doc.data() } : null;
-        } catch (error) {
-            console.error('Get cloud character error:', error);
-            return null;
-        }
-    }
 }
 
-// Глобальный экземпляр менеджера аутентификации
 const authManager = new AuthManager();
