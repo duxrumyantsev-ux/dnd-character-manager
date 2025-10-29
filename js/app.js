@@ -434,12 +434,19 @@ class DnDApp {
 
     // Бросок одного кубика
     async roll3DDice(sides) {
-        if (!diceEngine) {
+        if (!diceEngine || diceEngine.simpleMode) {
             console.error('Dice engine not initialized');
             // Fallback: простой случайный бросок
             const result = Math.floor(Math.random() * sides) + 1;
             this.showNumericResult(result, sides, 1, 0, [result]);
             this.saveToDiceHistory([result], result, sides, 1, 0);
+            // Показываем анимацию падения для простого режима
+            resultContainer.innerHTML = `
+                <div class="dice-loading">🎲 Бросаем d${sides}...</div>
+            `;
+            setTimeout(() => {
+                this.showNumericResult(result, sides, 1, 0, [result]);
+            }, 1000);
             return;
         }
         
@@ -451,7 +458,7 @@ class DnDApp {
 
     // Бросок нескольких кубиков
     async rollMultiple3DDice(sides, count, modifier) {
-        if (!diceEngine) {
+        if (!diceEngine || diceEngine.simpleMode) {
             console.error('Dice engine not initialized');
             // Fallback: простые случайные броски
             const results = Array.from({length: count}, () => Math.floor(Math.random() * sides) + 1);
