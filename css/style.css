@@ -1434,3 +1434,335 @@ input[type="checkbox"]:checked + .checkmark::after {
         align-self: flex-end;
     }
 }
+.dice-result-container {
+    min-height: 200px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    margin: 20px 0;
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dice-3d {
+    width: 80px;
+    height: 80px;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 1.5s ease-out;
+    cursor: pointer;
+}
+
+.dice-3d:hover {
+    transform: scale(1.1);
+}
+
+.dice-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(145deg, #ffffff, #e6e6e6);
+    border: 2px solid #333;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Позиции граней кубика */
+.face-1 { transform: rotateY(0deg) translateZ(40px); }
+.face-2 { transform: rotateY(180deg) translateZ(40px); }
+.face-3 { transform: rotateY(90deg) translateZ(40px); }
+.face-4 { transform: rotateY(-90deg) translateZ(40px); }
+.face-5 { transform: rotateX(90deg) translateZ(40px); }
+.face-6 { transform: rotateX(-90deg) translateZ(40px); }
+
+/* Анимации броска */
+@keyframes diceRoll {
+    0% {
+        transform: translateY(-100px) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(0) rotateX(720deg) rotateY(540deg) rotateZ(360deg);
+    }
+}
+
+@keyframes diceBounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-20px);
+    }
+    60% {
+        transform: translateY(-10px);
+    }
+}
+
+.dice-rolling {
+    animation: diceRoll 1.5s ease-out, diceBounce 2s ease-in-out;
+}
+
+.dice-landed {
+    animation: diceBounce 0.5s ease-in-out;
+}
+
+/* Стили для точек на гранях */
+.dice-dots {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    width: 60px;
+    height: 60px;
+    gap: 5px;
+}
+
+.dot {
+    width: 12px;
+    height: 12px;
+    background: #333;
+    border-radius: 50%;
+    margin: auto;
+}
+
+/* Конфигурации точек для разных значений */
+.face-1 .dot { grid-area: 2 / 2; }
+
+.face-2 .dice-dots {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+}
+.face-2 .dot:nth-child(1) { grid-area: 1 / 1; }
+.face-2 .dot:nth-child(2) { grid-area: 2 / 2; }
+
+.face-3 .dice-dots {
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+}
+.face-3 .dot:nth-child(1) { grid-area: 1 / 1; }
+.face-3 .dot:nth-child(2) { grid-area: 2 / 2; }
+.face-3 .dot:nth-child(3) { grid-area: 3 / 3; }
+
+.face-4 .dice-dots {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+}
+.face-4 .dot { 
+    width: 10px;
+    height: 10px;
+}
+
+.face-5 .dice-dots {
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+}
+.face-5 .dot:nth-child(1) { grid-area: 1 / 1; }
+.face-5 .dot:nth-child(2) { grid-area: 1 / 3; }
+.face-5 .dot:nth-child(3) { grid-area: 2 / 2; }
+.face-5 .dot:nth-child(4) { grid-area: 3 / 1; }
+.face-5 .dot:nth-child(5) { grid-area: 3 / 3; }
+
+.face-6 .dice-dots {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+}
+.face-6 .dot { 
+    width: 10px;
+    height: 10px;
+}
+
+/* Стили для разных типов кубиков */
+.dice-d4 {
+    background: linear-gradient(145deg, #ff6b6b, #ee5a52) !important;
+    color: white !important;
+}
+
+.dice-d6 {
+    background: linear-gradient(145deg, #48dbfb, #0abde3) !important;
+    color: white !important;
+}
+
+.dice-d8 {
+    background: linear-gradient(145deg, #1dd1a1, #10ac84) !important;
+    color: white !important;
+}
+
+.dice-d10 {
+    background: linear-gradient(145deg, #f368e0, #ff9ff3) !important;
+    color: white !important;
+}
+
+.dice-d12 {
+    background: linear-gradient(145deg, #ff9f43, #feca57) !important;
+    color: white !important;
+}
+
+.dice-d20 {
+    background: linear-gradient(145deg, #54a0ff, #2e86de) !important;
+    color: white !important;
+}
+
+.dice-d100 {
+    background: linear-gradient(145deg, #5f27cd, #341f97) !important;
+    color: white !important;
+}
+
+/* Стили для отображения результата */
+.dice-result-text {
+    text-align: center;
+    font-size: 1.5em;
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius);
+    border-left: 4px solid var(--accent);
+}
+
+.dice-total {
+    font-size: 2em;
+    font-weight: bold;
+    color: var(--accent);
+    text-shadow: 0 0 10px rgba(233, 69, 96, 0.5);
+}
+
+.dice-roll-breakdown {
+    font-size: 0.9em;
+    color: var(--text-muted);
+    margin-top: 10px;
+}
+
+/* Модальное окно с деталями броска */
+.dice-details-content {
+    padding: 20px;
+}
+
+.dice-history {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dice-history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    margin: 5px 0;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    transition: background 0.3s ease;
+}
+
+.dice-history-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.dice-history-time {
+    font-size: 0.8em;
+    color: var(--text-muted);
+}
+
+/* Стили для составных бросков (например, 2d6+3) */
+.multi-dice-roll {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.dice-group {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.roll-formula {
+    font-size: 1.2em;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .dice-3d {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .dice-face {
+        font-size: 18px;
+    }
+    
+    .dice-dots {
+        width: 45px;
+        height: 45px;
+    }
+    
+    .dot {
+        width: 8px;
+        height: 8px;
+    }
+    
+    .dice-result-text {
+        font-size: 1.2em;
+    }
+    
+    .dice-total {
+        font-size: 1.5em;
+    }
+}
+
+@media (max-width: 480px) {
+    .dice-3d {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .dice-face {
+        font-size: 16px;
+    }
+    
+    .dice-dots {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .dot {
+        width: 6px;
+        height: 6px;
+    }
+    
+    .dice-group {
+        gap: 5px;
+    }
+}
+.advanced-dice-controls {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.advanced-dice-controls h3 {
+    margin-bottom: 15px;
+    color: var(--accent);
+    font-size: 1.2em;
+}
+
+.dice-rolling-container {
+    position: relative;
+    min-height: 200px;
+}
