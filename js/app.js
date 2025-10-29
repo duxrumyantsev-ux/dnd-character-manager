@@ -380,33 +380,368 @@ class DnDApp {
     }
 
     // Система броска кубиков
-    initDice() {
+   initDice() {
         document.querySelectorAll('.dice').forEach(button => {
             button.addEventListener('click', (e) => {
                 const sides = parseInt(e.target.dataset.sides);
-                this.rollDice(sides);
+                this.rollAnimatedDice(sides);
             });
+        });
+        
+        // Обработчики для расширенных бросков
+        document.getElementById('roll-custom').addEventListener('click', () => {
+            const count = parseInt(document.getElementById('dice-count').value) || 1;
+            const sides = parseInt(document.getElementById('dice-sides').value) || 6;
+            const modifier = parseInt(document.getElementById('dice-modifier').value) || 0;
+            
+            this.rollMultipleDice(sides, count, modifier);
+        });
+        
+        document.getElementById('roll-advantage').addEventListener('click', () => {
+            this.rollWithAdvantage(false);
+        });
+        
+        document.getElementById('roll-disadvantage').addEventListener('click', () => {
+            this.rollWithAdvantage(true);
+        });
+        
+        // Инициализация истории бросков
+        this.diceHistory = JSON.parse(localStorage.getItem('dnd_dice_history') || '[]');
+        this.renderDiceHistory();
+    }
+
+    // Новая система анимированных бросков
+    async rollAnimatedDice(sides, count = 1, modifier = 0) {
+        const results = [];
+        const diceElements = [];
+        const resultContainer = document.getElementById('dice-result');
+        
+        // Очищаем предыдущие результаты
+        resultContainer.innerHTML = '';
+        resultContainer.classList.add('dice-rolling-container');
+        
+        // Создаем элементы кубиков
+        for (let i = 0; i < count; i++) {
+            const diceElement = this.createDiceElement(sides);
+            resultContainer.appendChild(diceElement);
+            diceElements.push(diceElement);
+            
+            // Запускаем анимацию с небольшой задержкой для каждого кубика
+            setTimeout(() => {
+                diceElement.classList.add('dice-rolling');
+            }, i * 200);
+        }
+        
+        // Ждем завершения анимации
+        await new Promise(resolve => setTimeout(resolve, 1500 + count * 200));
+        
+        // Генерируем результаты и останавливаем кубики
+        let total = 0;
+        for (let i = 0; i < count; i++) {
+            const result = Math.floor(Math.random() * sides) + 1;
+            results.push(result);
+            total += result;
+            
+            // Останавливаем анимацию и показываем результат
+            diceElements[i].classList.remove('dice-rolling');
+            diceElements[i].classList.add('dice-landed');
+            this.showDiceResult(diceElements[i], result, sides);
+            
+            // Добавляем небольшую задержку между остановками
+            await new Promise(resolve => setTimeout(resolve, 300));
+        }
+        
+        // Добавляем модификатор
+        total += modifier;
+        
+        // Показываем итоговый результат
+        this.showFinalResult(results, total, sides, count, modifier);
+        
+        // Сохраняем в историю
+        this.saveToDiceHistory(results, total, sides, count, modifier);
+    }
+
+    createDiceElement(sides) {
+        const diceElement = document.createElement('div');
+        diceElement.className = `dice-3d dice-d${sides}`;
+        
+        // Создаем грани кубика
+        for (let i = 1; i <= Math.min(sides, 6); i++) {
+            const face = document.createElement('div');
+            face.className = `dice-face face-${i}`;
+            
+            if (sides === 6) {
+                // Для d6 используем точки
+                const dotsContainer = document.createElement('div');
+                dotsContainer.className = 'dice-dots';
+                this.createDiceDots(dotsContainer, i);
+                face.appendChild(dotsContainer);
+            } else {
+                // Для других кубиков используем числа
+                face.textContent = i;
+            }
+            
+            diceElement.appendChild(face);
+        }
+        
+        // Для кубиков с более чем 6 гранями добавляем дополнительные грани с числами
+        for (let i = 7; i <= sides; i++) {
+            const face = document.createElement('div');
+            face.className = `dice-face face-${i}`;
+            face.textContent = i;
+            diceElement.appendChild(face);
+        }
+        
+        // Добавляем обработчик клика для просмотра деталей
+        diceElement.addEventListener('click', () => {
+            this.showDiceDetails();
+        });
+        
+        return diceElement;
+    }
+
+    createDiceDots(container, value) {
+        container.innerHTML = '';
+        
+        for (let i = 0; i < value; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'dot';
+            container.appendChild(dot);
+        }
+        
+        // Настраиваем расположение точек в зависимости от значения
+        this.arrangeDiceDots(container, value);
+    }
+
+    arrangeDiceDots(container, value) {
+        const dots = container.querySelectorAll('.dot');
+        
+        switch(value) {
+            case 1:
+                // Точка в центре
+                dots[0].style.gridArea = '2 / 2';
+                break;
+            case 2:
+                // Диагональ
+                dots[0].style.gridArea = '1 / 1';
+                dots[1].style.gridArea = '3 / 3';
+                break;
+            case 3:
+                // Диагональ
+                dots[0].style.gridArea = '1 / 1';
+                dots[1].style.gridArea = '2 / 2';
+                dots[2].style.gridArea = '3 / 3';
+                break;
+            case 4:
+                // Углы
+                dots[0].style.gridArea = '1 / 1';
+                dots[1].style.gridArea = '1 / 3';
+                dots[2].style.gridArea = '3 / 1';
+                dots[3].style.gridArea = '3 / 3';
+                break;
+            case 5:
+                // Углы + центр
+                dots[0].style.gridArea = '1 / 1';
+                dots[1].style.gridArea = '1 / 3';
+                dots[2].style.gridArea = '2 / 2';
+                dots[3].style.gridArea = '3 / 1';
+                dots[4].style.gridArea = '3 / 3';
+                break;
+            case 6:
+                // Две колонки по три
+                dots[0].style.gridArea = '1 / 1';
+                dots[1].style.gridArea = '2 / 1';
+                dots[2].style.gridArea = '3 / 1';
+                dots[3].style.gridArea = '1 / 3';
+                dots[4].style.gridArea = '2 / 3';
+                dots[5].style.gridArea = '3 / 3';
+                break;
+        }
+    }
+
+    showDiceResult(diceElement, result, sides) {
+        // Поворачиваем кубик чтобы показать выпавшую грань
+        const rotations = {
+            1: 'rotateX(0deg) rotateY(0deg)',
+            2: 'rotateX(0deg) rotateY(180deg)',
+            3: 'rotateX(0deg) rotateY(90deg)',
+            4: 'rotateX(0deg) rotateY(-90deg)',
+            5: 'rotateX(90deg) rotateY(0deg)',
+            6: 'rotateX(-90deg) rotateY(0deg)'
+        };
+        
+        if (result <= 6) {
+            diceElement.style.transform = rotations[result];
+        } else {
+            // Для кубиков с более чем 6 гранями используем случайную ориентацию
+            const randomRotation = `rotateX(${Math.random() * 360}deg) rotateY(${Math.random() * 360}deg)`;
+            diceElement.style.transform = randomRotation;
+        }
+        
+        // Добавляем подсветку выпавшему результату
+        diceElement.style.boxShadow = '0 0 20px rgba(233, 69, 96, 0.7)';
+        setTimeout(() => {
+            diceElement.style.boxShadow = '';
+        }, 1000);
+    }
+
+    showFinalResult(results, total, sides, count, modifier) {
+        const resultContainer = document.getElementById('dice-result');
+        const resultText = document.createElement('div');
+        resultText.className = 'dice-result-text';
+        
+        let formula = '';
+        if (count > 1 || modifier !== 0) {
+            formula = `${count}d${sides}`;
+            if (modifier > 0) {
+                formula += ` + ${modifier}`;
+            } else if (modifier < 0) {
+                formula += ` - ${Math.abs(modifier)}`;
+            }
+            formula = ` (${formula})`;
+        }
+        
+        resultText.innerHTML = `
+            <div class="dice-total">${total}</div>
+            <div class="dice-roll-breakdown">
+                ${count > 1 ? `Результаты: ${results.join(' + ')}` : ''}
+                ${modifier !== 0 ? ` ${modifier > 0 ? '+' : ''}${modifier}` : ''}
+                ${formula}
+            </div>
+        `;
+        
+        resultContainer.appendChild(resultText);
+    }
+
+    showDiceDetails() {
+        const modal = document.getElementById('dice-details-modal');
+        const detailsResult = document.getElementById('dice-details-result');
+        
+        // Показываем последний бросок в деталях
+        if (this.diceHistory.length > 0) {
+            const lastRoll = this.diceHistory[this.diceHistory.length - 1];
+            detailsResult.innerHTML = `
+                <div class="dice-result-text">
+                    <div class="dice-total">${lastRoll.total}</div>
+                    <div class="dice-roll-breakdown">
+                        ${lastRoll.count > 1 ? `Результаты: ${lastRoll.results.join(' + ')}` : ''}
+                        ${lastRoll.modifier !== 0 ? ` ${lastRoll.modifier > 0 ? '+' : ''}${lastRoll.modifier}` : ''}
+                        ${lastRoll.count > 1 || lastRoll.modifier !== 0 ? ` (${lastRoll.count}d${lastRoll.sides}${lastRoll.modifier > 0 ? '+' + lastRoll.modifier : lastRoll.modifier < 0 ? lastRoll.modifier : ''})` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        
+        modal.style.display = 'flex';
+    }
+
+    saveToDiceHistory(results, total, sides, count, modifier) {
+        const rollData = {
+            timestamp: new Date().toISOString(),
+            results: results,
+            total: total,
+            sides: sides,
+            count: count,
+            modifier: modifier,
+            time: new Date().toLocaleTimeString()
+        };
+        
+        this.diceHistory.push(rollData);
+        
+        // Сохраняем только последние 50 бросков
+        if (this.diceHistory.length > 50) {
+            this.diceHistory = this.diceHistory.slice(-50);
+        }
+        
+        localStorage.setItem('dnd_dice_history', JSON.stringify(this.diceHistory));
+        this.renderDiceHistory();
+    }
+
+    renderDiceHistory() {
+        const historyList = document.getElementById('dice-history-list');
+        if (!historyList) return;
+        
+        historyList.innerHTML = '';
+        
+        this.diceHistory.slice().reverse().forEach(roll => {
+            const historyItem = document.createElement('div');
+            historyItem.className = 'dice-history-item';
+            
+            let formula = `${roll.count}d${roll.sides}`;
+            if (roll.modifier > 0) {
+                formula += `+${roll.modifier}`;
+            } else if (roll.modifier < 0) {
+                formula += `${roll.modifier}`;
+            }
+            
+            historyItem.innerHTML = `
+                <div>
+                    <strong>${formula}</strong>
+                    <div class="dice-roll-breakdown">
+                        ${roll.count > 1 ? `${roll.results.join(' + ')}` : ''}
+                        ${roll.modifier !== 0 ? ` ${roll.modifier > 0 ? '+' : ''}${roll.modifier}` : ''}
+                    </div>
+                </div>
+                <div>
+                    <div class="dice-total">${roll.total}</div>
+                    <div class="dice-history-time">${roll.time}</div>
+                </div>
+            `;
+            
+            historyList.appendChild(historyItem);
         });
     }
 
+    // Старая функция rollDice (оставляем для совместимости)
     rollDice(sides) {
-        const result = Math.floor(Math.random() * sides) + 1;
-        const resultElement = document.getElementById('dice-result');
+        this.rollAnimatedDice(sides);
+    }
+
+    // Дополнительные методы для сложных бросков
+    rollMultipleDice(sides, count, modifier = 0) {
+        this.rollAnimatedDice(sides, count, modifier);
+    }
+
+    // Метод для броска с преимуществом/помехой
+    rollWithAdvantage(disadvantage = false) {
+        const roll1 = Math.floor(Math.random() * 20) + 1;
+        const roll2 = Math.floor(Math.random() * 20) + 1;
         
-        if (resultElement) {
-            resultElement.innerHTML = `
-                <div class="result">
-                    <span class="dice-roll">d${sides}:</span>
-                    <span class="result-number">${result}</span>
+        const result = disadvantage ? Math.min(roll1, roll2) : Math.max(roll1, roll2);
+        
+        this.rollAnimatedDice(20, 2, 0).then(() => {
+            const resultContainer = document.getElementById('dice-result');
+            const advantageText = document.createElement('div');
+            advantageText.className = 'dice-result-text';
+            advantageText.innerHTML = `
+                <div class="dice-total">${result}</div>
+                <div class="dice-roll-breakdown">
+                    Бросок с ${disadvantage ? 'помехой' : 'преимуществом'}: 
+                    ${roll1} и ${roll2} → берём ${disadvantage ? 'низший' : 'высший'}
                 </div>
             `;
-
-            resultElement.style.transform = 'scale(1.1)';
-            setTimeout(() => {
-                resultElement.style.transform = 'scale(1)';
-            }, 200);
-        }
+            resultContainer.appendChild(advantageText);
+        });
     }
+
+    //rollDice(sides) {
+        //const result = Math.floor(Math.random() * sides) + 1;
+        //const resultElement = document.getElementById('dice-result');
+        
+        //if (resultElement) {
+            //resultElement.innerHTML = `
+                //<div class="result">
+                    //<span class="dice-roll">d${sides}:</span>
+                    //<span class="result-number">${result}</span>
+                //</div>
+            //`;
+
+            //resultElement.style.transform = 'scale(1.1)';
+            //setTimeout(() => {
+                //resultElement.style.transform = 'scale(1)';
+            //}, 200);
+        //}
+    //}
 
     // Менеджер персонажей
     initCharacterManager() {
