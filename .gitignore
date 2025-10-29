@@ -1,6 +1,5 @@
 # Файлы с настройками и окружением
 .env
-.js
 config.php
 application.yml
 
