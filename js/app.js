@@ -415,7 +415,7 @@ class DnDApp {
         this.renderDiceHistory();
     }
 
-    // Создание 3D кубика
+    // Создание 3D кубика с цветными гранями
     create3DDice(sides) {
         const diceElement = document.createElement('div');
         diceElement.className = `dice-3d dice-d${sides}`;
@@ -521,17 +521,36 @@ class DnDApp {
         this.saveToDiceHistory(results, total, sides, count, modifier);
     }
 
-    // Показ результата на 3D кубике
+    // Показ результата на 3D кубике с выделением выпавшей грани
     show3DDiceResult(diceElement, result, sides) {
+        // Сначала убираем подсветку со всех граней
+        const allFaces = diceElement.querySelectorAll('.dice-face');
+        allFaces.forEach(face => {
+            face.classList.remove('active-face');
+        });
+        
+        // Находим выпавшую грань и подсвечиваем ее
+        const resultFace = diceElement.querySelector(`.face-${result}`);
+        if (resultFace) {
+            resultFace.classList.add('active-face');
+        }
+        
+        // Также подсвечиваем весь кубик
+        diceElement.classList.add('highlight');
+        
         // Для каждого типа кубика своя анимация остановки
         let finalRotation = '';
+        const randomX = Math.random() * 360;
+        const randomY = Math.random() * 360;
+        const randomZ = Math.random() * 360;
         
         switch(sides) {
             case 4:
-                finalRotation = `rotateX(${Math.random() * 360}deg) rotateY(${Math.random() * 360}deg) rotateZ(${Math.random() * 360}deg)`;
+                // Для d4 - тетраэдр
+                finalRotation = `rotateX(${randomX}deg) rotateY(${randomY}deg) rotateZ(${randomZ}deg)`;
                 break;
             case 6:
-                // Для d6 используем предопределенные позиции
+                // Для d6 используем предопределенные позиции, чтобы выпавшая грань была сверху
                 const rotations = {
                     1: 'rotateX(0deg) rotateY(0deg)',
                     2: 'rotateX(0deg) rotateY(180deg)',
@@ -540,19 +559,41 @@ class DnDApp {
                     5: 'rotateX(90deg) rotateY(0deg)',
                     6: 'rotateX(-90deg) rotateY(0deg)'
                 };
-                finalRotation = rotations[result] || `rotateX(${Math.random() * 360}deg) rotateY(${Math.random() * 360}deg)`;
+                finalRotation = rotations[result] || `rotateX(${randomX}deg) rotateY(${randomY}deg)`;
+                break;
+            case 8:
+                // Для d8 - октаэдр
+                finalRotation = `rotateX(${randomX}deg) rotateY(${randomY}deg) rotateZ(${randomZ}deg)`;
+                break;
+            case 10:
+                // Для d10
+                finalRotation = `rotateX(${randomX}deg) rotateY(${randomY}deg) rotateZ(${randomZ}deg)`;
+                break;
+            case 12:
+                // Для d12 - додекаэдр
+                finalRotation = `rotateX(${randomX}deg) rotateY(${randomY}deg) rotateZ(${randomZ}deg)`;
+                break;
+            case 20:
+                // Для d20 - икосаэдр
+                finalRotation = `rotateX(${randomX}deg) rotateY(${randomY}deg) rotateZ(${randomZ}deg)`;
+                break;
+            case 100:
+                // Для d100 - сфера
+                finalRotation = `rotateX(${randomX}deg) rotateY(${randomY}deg) rotateZ(${randomZ}deg)`;
                 break;
             default:
-                finalRotation = `rotateX(${Math.random() * 360}deg) rotateY(${Math.random() * 360}deg) rotateZ(${Math.random() * 360}deg)`;
+                finalRotation = `rotateX(${randomX}deg) rotateY(${randomY}deg) rotateZ(${randomZ}deg)`;
         }
         
         diceElement.style.transform = finalRotation;
         
-        // Подсвечиваем выпавший кубик
-        diceElement.style.boxShadow = '0 0 20px rgba(233, 69, 96, 0.7)';
+        // Убираем подсветку через 2 секунды
         setTimeout(() => {
-            diceElement.style.boxShadow = '';
-        }, 1000);
+            diceElement.classList.remove('highlight');
+            if (resultFace) {
+                resultFace.classList.remove('active-face');
+            }
+        }, 2000);
     }
 
     // Показ числового результата
