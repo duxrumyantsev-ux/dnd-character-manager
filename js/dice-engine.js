@@ -26,9 +26,35 @@ class DiceEngine {
     init(containerId) {
         this.container = document.getElementById(containerId);
         if (!this.container) return;
+        // Проверяем наличие библиотек
+        if (typeof CANNON === 'undefined') {
+            console.warn('Cannon.js не найден. DiceEngine будет работать в упрощенном режиме.');
+            this.container.innerHTML += `
+                <div style="position: absolute; top: 10px; left: 10px; background: rgba(255,0,0,0.1); padding: 10px; border-radius: 5px; font-size: 12px;">
+                    ⚠️ Физика кубиков недоступна. Обновите страницу или проверьте подключение к интернету.
+                </div>
+            `;
+        }
+        try {
+            this.setupScene();
+            this.setupPhysics();
+            this.setupLighting();
+            this.createDiceTable();
+            this.animate();
+        } catch (error) {
+            console.error('Ошибка инициализации DiceEngine:', error);
+            // Переключаемся в простой режим
+            this.setupSimpleMode();
+        }
+    }
 
+    // Добавьте метод для простого режима
+    setupSimpleMode() {
+        console.log('DiceEngine работает в простом режиме (без физики)');
+        this.simpleMode = true;
+        
+        // Создаем простую сцену
         this.setupScene();
-        this.setupPhysics();
         this.setupLighting();
         this.createDiceTable();
         this.animate();
@@ -313,6 +339,12 @@ class DiceEngine {
 
     // Создание физического тела для кубика
     createDiceBody(sides) {
+        // Проверка наличия Cannon.js
+        if (typeof CANNON === 'undefined') {
+            console.error('Cannon.js не загружен. Используется простой режим бросков.');
+            return this.createSimpleDiceBody(sides);
+        }
+        
         let shape;
         
         switch(sides) {
@@ -342,7 +374,16 @@ class DiceEngine {
 
         return body;
     }
-
+    // Добавьте простую реализацию для случаев, когда Cannon.js не доступен
+    createSimpleDiceBody(sides) {
+        // Возвращаем простой объект-заглушку
+        return {
+            position: { x: 0, y: 0, z: 0 },
+            velocity: { x: 0, y: 0, z: 0 },
+            angularVelocity: { x: 0, y: 0, z: 0 },
+            quaternion: { x: 0, y: 0, z: 0, w: 1 }
+        };
+    }
     // Вершины для октаэдра (d8)
     createOctahedronVertices() {
         return [
@@ -365,6 +406,20 @@ class DiceEngine {
     // Ожидание пока кубики успокоятся
     waitForDiceToSettle() {
         return new Promise((resolve) => {
+            if (typeof CANNON === 'undefined') {
+                // Для простого режима - сразу возвращаем результат
+                setTimeout(() => {
+                    const results = this.diceObjects.map(() => 
+                        Math.floor(Math.random() * this.diceObjects[0].sides) + 1
+                    );
+                    if (this.resultCallback) {
+                        const total = results.reduce((sum, val) => sum + val, 0);
+                        this.resultCallback(results, total, this.diceObjects[0].sides, this.diceObjects.length, 0);
+                    }
+                    resolve();
+                }, 1000);
+                return;
+            }
             const checkStability = () => {
                 let allStable = true;
                 
@@ -446,13 +501,15 @@ class DiceEngine {
     animate() {
         requestAnimationFrame(() => this.animate());
         
-        // Обновляем физику
-        this.world.step(1/60);
-        
-        // Синхронизируем Three.js меши с Cannon.js телами
-        for (const dice of this.diceObjects) {
-            dice.mesh.position.copy(dice.body.position);
-            dice.mesh.quaternion.copy(dice.body.quaternion);
+        // Обновляем физику только если Cannon.js доступен
+        if (typeof CANNON !== 'undefined') {
+            this.world.step(1/60);
+            
+            // Синхронизируем Three.js меши с Cannon.js телами
+            for (const dice of this.diceObjects) {
+                dice.mesh.position.copy(dice.body.position);
+                dice.mesh.quaternion.copy(dice.body.quaternion);
+            }
         }
         
         this.renderer.render(this.scene, this.camera);
@@ -476,17 +533,45 @@ let diceEngine;
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
+    // Ждем инициализации основного приложения
+    const initDiceEngine = () => {
         const diceContainer = document.getElementById('dice-result');
-        if (diceContainer) {
-            diceEngine = new DiceEngine();
-            diceEngine.init('dice-result');
-            
-            // Устанавливаем обработчик результатов
-            diceEngine.onResult((results, total, sides, count, modifier) => {
-                app.showNumericResult(total, sides, count, modifier, results);
-                app.saveToDiceHistory(results, total, sides, count, modifier);
-            });
+        if (diceContainer && !diceEngine) {
+            try {
+                diceEngine = new DiceEngine();
+                diceEngine.init('dice-result');
+                
+                // Устанавливаем обработчик результатов
+                diceEngine.onResult((results, total, sides, count, modifier) => {
+                    if (window.app && typeof window.app.showNumericResult === 'function') {
+                        window.app.showNumericResult(total, sides, count, modifier, results);
+                    }
+                    if (window.app && typeof window.app.saveToDiceHistory === 'function') {
+                        window.app.saveToDiceHistory(results, total, sides, count, modifier);
+                    }
+                });
+                
+                console.log('Dice engine initialized successfully');
+            } catch (error) {
+                console.error('Failed to initialize dice engine:', error);
+            }
         }
-    }, 1000);
+    };
+    
+    // Пытаемся инициализировать сразу
+    initDiceEngine();
+    
+    // И переинициализируем при переключении на вкладку кубиков
+    const observer = new MutationObserver(() => {
+        if (document.getElementById('dice')?.classList.contains('active')) {
+            setTimeout(initDiceEngine, 100);
+        }
+    });
+    
+    observer.observe(document.body, {
+        childList: false,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class']
+    });
 });
