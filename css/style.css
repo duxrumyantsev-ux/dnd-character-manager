@@ -1766,7 +1766,7 @@ input[type="checkbox"]:checked + .checkmark::after {
     position: relative;
     min-height: 200px;
 }*/
-/* Улучшенные стили для 3D кубиков */
+/* Улучшенные стили для 3D кубиков с цветными гранями */
 .dice-3d-container {
     display: flex;
     flex-wrap: wrap;
@@ -1791,77 +1791,177 @@ input[type="checkbox"]:checked + .checkmark::after {
     position: absolute;
     width: 100%;
     height: 100%;
-    background: white;
     border: 2px solid #333;
     border-radius: 8px;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 24px;
+    font-size: 20px;
     font-weight: bold;
-    color: #333;
+    color: white;
     backface-visibility: hidden;
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-/* Специфичные стили для каждого типа кубика */
-.dice-d4 .dice-face {
+/* Цвета для граней d6 */
+.dice-d6 .face-1 { 
     background: linear-gradient(145deg, #ff6b6b, #ee5a52);
-    color: white;
-    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    transform: rotateY(0deg) translateZ(40px); 
 }
-
-.dice-d6 .dice-face {
+.dice-d6 .face-2 { 
     background: linear-gradient(145deg, #48dbfb, #0abde3);
-    color: white;
+    transform: rotateY(180deg) translateZ(40px); 
 }
-
-.dice-d8 .dice-face {
+.dice-d6 .face-3 { 
     background: linear-gradient(145deg, #1dd1a1, #10ac84);
-    color: white;
-    clip-path: polygon(50% 0%, 100% 30%, 100% 70%, 50% 100%, 0% 70%, 0% 30%);
+    transform: rotateY(90deg) translateZ(40px); 
 }
-
-.dice-d10 .dice-face {
+.dice-d6 .face-4 { 
     background: linear-gradient(145deg, #f368e0, #ff9ff3);
-    color: white;
-    clip-path: polygon(50% 0%, 100% 30%, 80% 100%, 20% 100%, 0% 30%);
+    transform: rotateY(-90deg) translateZ(40px); 
 }
-
-.dice-d12 .dice-face {
+.dice-d6 .face-5 { 
     background: linear-gradient(145deg, #ff9f43, #feca57);
-    color: white;
-    clip-path: polygon(50% 0%, 90% 25%, 90% 75%, 50% 100%, 10% 75%, 10% 25%);
+    transform: rotateX(90deg) translateZ(40px); 
 }
-
-.dice-d20 .dice-face {
-    background: linear-gradient(145deg, #54a0ff, #2e86de);
-    color: white;
-    clip-path: polygon(50% 0%, 100% 25%, 80% 100%, 20% 100%, 0% 25%);
-}
-
-.dice-d100 .dice-face {
+.dice-d6 .face-6 { 
     background: linear-gradient(145deg, #5f27cd, #341f97);
-    color: white;
-    border-radius: 50%;
-    font-size: 18px;
+    transform: rotateX(-90deg) translateZ(40px); 
 }
 
-/* Позиции граней для d6 (стандартный куб) */
-.dice-d6 .face-1 { transform: rotateY(0deg) translateZ(40px); }
-.dice-d6 .face-2 { transform: rotateY(180deg) translateZ(40px); }
-.dice-d6 .face-3 { transform: rotateY(90deg) translateZ(40px); }
-.dice-d6 .face-4 { transform: rotateY(-90deg) translateZ(40px); }
-.dice-d6 .face-5 { transform: rotateX(90deg) translateZ(40px); }
-.dice-d6 .face-6 { transform: rotateX(-90deg) translateZ(40px); }
+/* Цвета для граней d4 (тетраэдр) */
+.dice-d4 .face-1 { 
+    background: linear-gradient(145deg, #ff6b6b, #ee5a52);
+    transform: rotateX(0deg) translateZ(40px); 
+}
+.dice-d4 .face-2 { 
+    background: linear-gradient(145deg, #48dbfb, #0abde3);
+    transform: rotateX(120deg) translateZ(40px); 
+}
+.dice-d4 .face-3 { 
+    background: linear-gradient(145deg, #1dd1a1, #10ac84);
+    transform: rotateX(240deg) translateZ(40px); 
+}
+.dice-d4 .face-4 { 
+    background: linear-gradient(145deg, #f368e0, #ff9ff3);
+    transform: rotateX(0deg) rotateY(180deg) translateZ(40px); 
+}
 
-/* Позиции граней для d4 (тетраэдр) */
-.dice-d4 .face-1 { transform: rotateX(0deg) translateZ(40px); }
-.dice-d4 .face-2 { transform: rotateX(120deg) translateZ(40px); }
-.dice-d4 .face-3 { transform: rotateX(240deg) translateZ(40px); }
-.dice-d4 .face-4 { transform: rotateX(0deg) rotateY(180deg) translateZ(40px); }
+/* Цвета для граней d8 */
+.dice-d8 .face-1 { background: linear-gradient(145deg, #ff6b6b, #ee5a52); }
+.dice-d8 .face-2 { background: linear-gradient(145deg, #48dbfb, #0abde3); }
+.dice-d8 .face-3 { background: linear-gradient(145deg, #1dd1a1, #10ac84); }
+.dice-d8 .face-4 { background: linear-gradient(145deg, #f368e0, #ff9ff3); }
+.dice-d8 .face-5 { background: linear-gradient(145deg, #ff9f43, #feca57); }
+.dice-d8 .face-6 { background: linear-gradient(145deg, #5f27cd, #341f97); }
+.dice-d8 .face-7 { background: linear-gradient(145deg, #54a0ff, #2e86de); }
+.dice-d8 .face-8 { background: linear-gradient(145deg, #00d2d3, #00a8a8); }
 
-/* Анимации */
+/* Позиции для d8 */
+.dice-d8 .face-1 { transform: rotateX(0deg) translateZ(35px) rotateY(0deg); }
+.dice-d8 .face-2 { transform: rotateX(180deg) translateZ(35px) rotateY(0deg); }
+.dice-d8 .face-3 { transform: rotateX(90deg) translateZ(35px) rotateY(0deg); }
+.dice-d8 .face-4 { transform: rotateX(-90deg) translateZ(35px) rotateY(0deg); }
+.dice-d8 .face-5 { transform: rotateY(90deg) translateZ(35px) rotateX(0deg); }
+.dice-d8 .face-6 { transform: rotateY(-90deg) translateZ(35px) rotateX(0deg); }
+.dice-d8 .face-7 { transform: rotateY(0deg) translateZ(35px) rotateX(45deg); }
+.dice-d8 .face-8 { transform: rotateY(0deg) translateZ(35px) rotateX(-45deg); }
+
+/* Цвета для граней d10 */
+.dice-d10 .face-1 { background: linear-gradient(145deg, #ff6b6b, #ee5a52); }
+.dice-d10 .face-2 { background: linear-gradient(145deg, #48dbfb, #0abde3); }
+.dice-d10 .face-3 { background: linear-gradient(145deg, #1dd1a1, #10ac84); }
+.dice-d10 .face-4 { background: linear-gradient(145deg, #f368e0, #ff9ff3); }
+.dice-d10 .face-5 { background: linear-gradient(145deg, #ff9f43, #feca57); }
+.dice-d10 .face-6 { background: linear-gradient(145deg, #5f27cd, #341f97); }
+.dice-d10 .face-7 { background: linear-gradient(145deg, #54a0ff, #2e86de); }
+.dice-d10 .face-8 { background: linear-gradient(145deg, #00d2d3, #00a8a8); }
+.dice-d10 .face-9 { background: linear-gradient(145deg, #ff9ff3, #f368e0); }
+.dice-d10 .face-10 { background: linear-gradient(145deg, #feca57, #ff9f43); }
+
+/* Цвета для граней d12 */
+.dice-d12 .face-1 { background: linear-gradient(145deg, #ff6b6b, #ee5a52); }
+.dice-d12 .face-2 { background: linear-gradient(145deg, #48dbfb, #0abde3); }
+.dice-d12 .face-3 { background: linear-gradient(145deg, #1dd1a1, #10ac84); }
+.dice-d12 .face-4 { background: linear-gradient(145deg, #f368e0, #ff9ff3); }
+.dice-d12 .face-5 { background: linear-gradient(145deg, #ff9f43, #feca57); }
+.dice-d12 .face-6 { background: linear-gradient(145deg, #5f27cd, #341f97); }
+.dice-d12 .face-7 { background: linear-gradient(145deg, #54a0ff, #2e86de); }
+.dice-d12 .face-8 { background: linear-gradient(145deg, #00d2d3, #00a8a8); }
+.dice-d12 .face-9 { background: linear-gradient(145deg, #ff9ff3, #f368e0); }
+.dice-d12 .face-10 { background: linear-gradient(145deg, #feca57, #ff9f43); }
+.dice-d12 .face-11 { background: linear-gradient(145deg, #ee5a52, #ff6b6b); }
+.dice-d12 .face-12 { background: linear-gradient(145deg, #0abde3, #48dbfb); }
+
+/* Цвета для граней d20 */
+.dice-d20 .face-1 { background: linear-gradient(145deg, #ff6b6b, #ee5a52); }
+.dice-d20 .face-2 { background: linear-gradient(145deg, #48dbfb, #0abde3); }
+.dice-d20 .face-3 { background: linear-gradient(145deg, #1dd1a1, #10ac84); }
+.dice-d20 .face-4 { background: linear-gradient(145deg, #f368e0, #ff9ff3); }
+.dice-d20 .face-5 { background: linear-gradient(145deg, #ff9f43, #feca57); }
+.dice-d20 .face-6 { background: linear-gradient(145deg, #5f27cd, #341f97); }
+.dice-d20 .face-7 { background: linear-gradient(145deg, #54a0ff, #2e86de); }
+.dice-d20 .face-8 { background: linear-gradient(145deg, #00d2d3, #00a8a8); }
+.dice-d20 .face-9 { background: linear-gradient(145deg, #ff9ff3, #f368e0); }
+.dice-d20 .face-10 { background: linear-gradient(145deg, #feca57, #ff9f43); }
+.dice-d20 .face-11 { background: linear-gradient(145deg, #ee5a52, #ff6b6b); }
+.dice-d20 .face-12 { background: linear-gradient(145deg, #0abde3, #48dbfb); }
+.dice-d20 .face-13 { background: linear-gradient(145deg, #10ac84, #1dd1a1); }
+.dice-d20 .face-14 { background: linear-gradient(145deg, #ff9ff3, #f368e0); }
+.dice-d20 .face-15 { background: linear-gradient(145deg, #341f97, #5f27cd); }
+.dice-d20 .face-16 { background: linear-gradient(145deg, #2e86de, #54a0ff); }
+.dice-d20 .face-17 { background: linear-gradient(145deg, #00a8a8, #00d2d3); }
+.dice-d20 .face-18 { background: linear-gradient(145deg, #f368e0, #ff9ff3); }
+.dice-d20 .face-19 { background: linear-gradient(145deg, #ff9f43, #feca57); }
+.dice-d20 .face-20 { background: linear-gradient(145deg, #ee5a52, #ff6b6b); }
+
+/* Стиль для выделенной (выпавшей) грани */
+.dice-face.active-face {
+    box-shadow: 
+        inset 0 0 20px rgba(255, 255, 255, 0.8),
+        0 0 30px rgba(255, 255, 255, 0.6),
+        0 0 0 3px gold;
+    z-index: 10;
+    animation: glow 2s ease-in-out;
+}
+
+@keyframes glow {
+    0% {
+        box-shadow: 
+            inset 0 0 20px rgba(255, 255, 255, 0.8),
+            0 0 30px rgba(255, 255, 255, 0.6),
+            0 0 0 3px gold;
+    }
+    50% {
+        box-shadow: 
+            inset 0 0 25px rgba(255, 255, 255, 1),
+            0 0 40px rgba(255, 255, 255, 0.8),
+            0 0 0 4px gold;
+    }
+    100% {
+        box-shadow: 
+            inset 0 0 20px rgba(255, 255, 255, 0.8),
+            0 0 30px rgba(255, 255, 255, 0.6),
+            0 0 0 3px gold;
+    }
+}
+
+/* Подсветка всего кубика при выпадении */
+.dice-3d.highlight {
+    animation: diceHighlight 2s ease-in-out;
+}
+
+@keyframes diceHighlight {
+    0%, 100% {
+        filter: brightness(1);
+    }
+    50% {
+        filter: brightness(1.3);
+    }
+}
+
+/* Анимации броска */
 @keyframes diceRoll {
     0% {
         transform: translateY(-100px) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
@@ -1952,11 +2052,16 @@ input[type="checkbox"]:checked + .checkmark::after {
     }
     
     .dice-face {
-        font-size: 18px;
+        font-size: 16px;
     }
     
-    .dice-d100 .dice-face {
-        font-size: 14px;
+    .dice-d6 .face-1,
+    .dice-d6 .face-2,
+    .dice-d6 .face-3,
+    .dice-d6 .face-4,
+    .dice-d6 .face-5,
+    .dice-d6 .face-6 {
+        transform: rotateY(0deg) translateZ(30px);
     }
     
     .dice-result-number {
@@ -1975,11 +2080,16 @@ input[type="checkbox"]:checked + .checkmark::after {
     }
     
     .dice-face {
-        font-size: 16px;
+        font-size: 14px;
     }
     
-    .dice-d100 .dice-face {
-        font-size: 12px;
+    .dice-d6 .face-1,
+    .dice-d6 .face-2,
+    .dice-d6 .face-3,
+    .dice-d6 .face-4,
+    .dice-d6 .face-5,
+    .dice-d6 .face-6 {
+        transform: rotateY(0deg) translateZ(25px);
     }
     
     .dice-result-number {
