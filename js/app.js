@@ -432,247 +432,51 @@ class DnDApp {
         return diceElement;
     }
 
-    // Бросок одного 3D кубика
+    // Бросок одного кубика
     async roll3DDice(sides) {
+        if (!diceEngine) {
+            console.error('Dice engine not initialized');
+            return;
+        }
+        
         const resultContainer = document.getElementById('dice-result');
-        resultContainer.innerHTML = '';
+        resultContainer.innerHTML = '<div class="dice-loading">🎲 Бросаем кубик...</div>';
         
-        // Создаем контейнер для кубика
-        const diceContainer = document.createElement('div');
-        diceContainer.className = 'dice-3d-container';
-        
-        // Создаем кубик
-        const diceElement = this.create3DDice(sides);
-        diceContainer.appendChild(diceElement);
-        resultContainer.appendChild(diceContainer);
-        
-        // Генерируем результат
-        const result = Math.floor(Math.random() * sides) + 1;
-        
-        // Запускаем анимацию
-        diceElement.classList.add('dice-rolling');
-        
-        // Ждем завершения анимации
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Останавливаем анимацию и показываем результат
-        diceElement.classList.remove('dice-rolling');
-        diceElement.classList.add('dice-landed');
-        this.show3DDiceResult(diceElement, result, sides);
-        
-        // Показываем числовой результат
-        this.showNumericResult(result, sides, 1, 0);
-        
-        // Сохраняем в историю
-        this.saveToDiceHistory([result], result, sides, 1, 0);
+        await diceEngine.rollDice(sides, 1, 0);
     }
 
-    // Бросок нескольких 3D кубиков
+    // Бросок нескольких кубиков
     async rollMultiple3DDice(sides, count, modifier) {
+        if (!diceEngine) {
+            console.error('Dice engine not initialized');
+            return;
+        }
+        
         const resultContainer = document.getElementById('dice-result');
-        resultContainer.innerHTML = '';
+        resultContainer.innerHTML = `<div class="dice-loading">🎲 Бросаем ${count} кубиков...</div>`;
         
-        const diceContainer = document.createElement('div');
-        diceContainer.className = 'dice-3d-container';
-        
-        const results = [];
-        const diceElements = [];
-        
-        // Создаем кубики
-        for (let i = 0; i < count; i++) {
-            const diceElement = this.create3DDice(sides);
-            diceContainer.appendChild(diceElement);
-            diceElements.push(diceElement);
-            
-            // Запускаем анимацию с задержкой
-            setTimeout(() => {
-                diceElement.classList.add('dice-rolling');
-            }, i * 200);
-        }
-        
-        resultContainer.appendChild(diceContainer);
-        
-        // Ждем завершения анимации
-        await new Promise(resolve => setTimeout(resolve, 1500 + count * 200));
-        
-        // Генерируем результаты и останавливаем кубики
-        let total = 0;
-        for (let i = 0; i < count; i++) {
-            const result = Math.floor(Math.random() * sides) + 1;
-            results.push(result);
-            total += result;
-            
-            // Останавливаем анимацию и показываем результат
-            diceElements[i].classList.remove('dice-rolling');
-            diceElements[i].classList.add('dice-landed');
-            this.show3DDiceResult(diceElements[i], result, sides);
-            
-            // Добавляем задержку между остановками
-            await new Promise(resolve => setTimeout(resolve, 300));
-        }
-        
-        // Добавляем модификатор
-        total += modifier;
-        
-        // Показываем числовой результат
-        this.showNumericResult(total, sides, count, modifier, results);
-        
-        // Сохраняем в историю
-        this.saveToDiceHistory(results, total, sides, count, modifier);
-    }
-
-    // Показ результата на 3D кубике с выделением выпавшей грани
-    show3DDiceResult(diceElement, result, sides) {
-        // Сначала убираем подсветку со всех граней
-        const allFaces = diceElement.querySelectorAll('.dice-face');
-        allFaces.forEach(face => {
-            face.classList.remove('active-face');
-        });
-        
-        // Находим выпавшую грань и подсвечиваем ее
-        const resultFace = diceElement.querySelector(`.face-${result}`);
-        if (resultFace) {
-            resultFace.classList.add('active-face');
-        }
-        
-        // Также подсвечиваем весь кубик
-        diceElement.classList.add('highlight');
-        
-        // Для каждого типа кубика своя анимация остановки
-        let finalRotation = '';
-        const randomX = Math.random() * 360;
-        const randomY = Math.random() * 360;
-        const randomZ = Math.random() * 360;
-        
-        switch(sides) {
-            case 4:
-                // Для d4 - тетраэдр
-                finalRotation = `rotateX(${randomX}deg) rotateY(${randomY}deg) rotateZ(${randomZ}deg)`;
-                break;
-            case 6:
-                // Для d6 используем предопределенные позиции, чтобы выпавшая грань была сверху
-                const rotations = {
-                    1: 'rotateX(0deg) rotateY(0deg)',
-                    2: 'rotateX(0deg) rotateY(180deg)',
-                    3: 'rotateX(0deg) rotateY(90deg)',
-                    4: 'rotateX(0deg) rotateY(-90deg)',
-                    5: 'rotateX(90deg) rotateY(0deg)',
-                    6: 'rotateX(-90deg) rotateY(0deg)'
-                };
-                finalRotation = rotations[result] || `rotateX(${randomX}deg) rotateY(${randomY}deg)`;
-                break;
-            case 8:
-                // Для d8 - октаэдр
-                finalRotation = `rotateX(${randomX}deg) rotateY(${randomY}deg) rotateZ(${randomZ}deg)`;
-                break;
-            case 10:
-                // Для d10
-                finalRotation = `rotateX(${randomX}deg) rotateY(${randomY}deg) rotateZ(${randomZ}deg)`;
-                break;
-            case 12:
-                // Для d12 - додекаэдр
-                finalRotation = `rotateX(${randomX}deg) rotateY(${randomY}deg) rotateZ(${randomZ}deg)`;
-                break;
-            case 20:
-                // Для d20 - икосаэдр
-                finalRotation = `rotateX(${randomX}deg) rotateY(${randomY}deg) rotateZ(${randomZ}deg)`;
-                break;
-            case 100:
-                // Для d100 - сфера
-                finalRotation = `rotateX(${randomX}deg) rotateY(${randomY}deg) rotateZ(${randomZ}deg)`;
-                break;
-            default:
-                finalRotation = `rotateX(${randomX}deg) rotateY(${randomY}deg) rotateZ(${randomZ}deg)`;
-        }
-        
-        diceElement.style.transform = finalRotation;
-        
-        // Убираем подсветку через 2 секунды
-        setTimeout(() => {
-            diceElement.classList.remove('highlight');
-            if (resultFace) {
-                resultFace.classList.remove('active-face');
-            }
-        }, 2000);
-    }
-
-    // Показ числового результата
-    showNumericResult(total, sides, count, modifier, results = []) {
-        const resultContainer = document.getElementById('dice-result');
-        const resultText = document.createElement('div');
-        resultText.className = 'dice-result-text';
-        
-        let formula = '';
-        if (count > 1 || modifier !== 0) {
-            formula = `${count}d${sides}`;
-            if (modifier > 0) {
-                formula += ` + ${modifier}`;
-            } else if (modifier < 0) {
-                formula += ` - ${Math.abs(modifier)}`;
-            }
-        }
-        
-        resultText.innerHTML = `
-            <div class="dice-result-number">${total}</div>
-            <div class="dice-roll-details">
-                ${count > 1 ? `Результаты: ${results.join(' + ')}` : ''}
-                ${modifier !== 0 ? ` ${modifier > 0 ? '+' : ''}${modifier}` : ''}
-                ${formula ? ` (${formula})` : ''}
-            </div>
-        `;
-        
-        resultContainer.appendChild(resultText);
+        await diceEngine.rollDice(sides, count, modifier);
     }
 
     // Бросок с преимуществом/помехой
     async rollWithAdvantage(disadvantage = false) {
+        if (!diceEngine) {
+            console.error('Dice engine not initialized');
+            return;
+        }
+        
         const resultContainer = document.getElementById('dice-result');
-        resultContainer.innerHTML = '';
+        resultContainer.innerHTML = '<div class="dice-loading">🎲 Бросок с ' + 
+            (disadvantage ? 'помехой' : 'преимуществом') + '...</div>';
         
-        const roll1 = Math.floor(Math.random() * 20) + 1;
-        const roll2 = Math.floor(Math.random() * 20) + 1;
+        const results = await diceEngine.rollDice(20, 2, 0);
         
-        const result = disadvantage ? Math.min(roll1, roll2) : Math.max(roll1, roll2);
+        const result = disadvantage ? 
+            Math.min(results[0], results[1]) : 
+            Math.max(results[0], results[1]);
         
-        // Показываем оба броска
-        const diceContainer = document.createElement('div');
-        diceContainer.className = 'dice-3d-container';
-        
-        const dice1 = this.create3DDice(20);
-        const dice2 = this.create3DDice(20);
-        
-        diceContainer.appendChild(dice1);
-        diceContainer.appendChild(dice2);
-        resultContainer.appendChild(diceContainer);
-        
-        // Запускаем анимацию
-        dice1.classList.add('dice-rolling');
-        dice2.classList.add('dice-rolling');
-        
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Останавливаем анимацию
-        dice1.classList.remove('dice-rolling');
-        dice2.classList.remove('dice-rolling');
-        dice1.classList.add('dice-landed');
-        dice2.classList.add('dice-landed');
-        
-        this.show3DDiceResult(dice1, roll1, 20);
-        this.show3DDiceResult(dice2, roll2, 20);
-        
-        // Показываем итоговый результат
-        const advantageText = document.createElement('div');
-        advantageText.className = 'dice-result-text';
-        advantageText.innerHTML = `
-            <div class="dice-result-number">${result}</div>
-            <div class="dice-roll-details">
-                Бросок с ${disadvantage ? 'помехой' : 'преимуществом'}: 
-                ${roll1} и ${roll2} → берём ${disadvantage ? 'низший' : 'высший'}
-            </div>
-        `;
-        resultContainer.appendChild(advantageText);
-        
-        this.saveToDiceHistory([roll1, roll2], result, 20, 2, 0);
+        this.showNumericResult(result, 20, 2, 0, results);
+        this.saveToDiceHistory(results, result, 20, 2, 0);
     }
 
     saveToDiceHistory(results, total, sides, count, modifier) {
