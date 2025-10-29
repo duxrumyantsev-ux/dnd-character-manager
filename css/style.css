@@ -68,6 +68,106 @@ body {
     font-size: 14px;
 }
 
+/* Стили для аватара пользователя */
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 20px;
+    transition: all 0.3s ease;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.user-avatar:hover {
+    transform: scale(1.1);
+    border-color: var(--accent-light);
+}
+
+/* Стили для выбора аватара */
+.avatar-selection {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.avatar-option {
+    font-size: 24px;
+    cursor: pointer;
+    text-align: center;
+    padding: 10px;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.avatar-option:hover, .avatar-option.selected {
+    border-color: var(--accent);
+    background: rgba(233, 69, 96, 0.1);
+    transform: scale(1.1);
+}
+
+/* Улучшенные стили для форм аутентификации */
+.auth-modal .form-group {
+    margin-bottom: 20px;
+}
+
+.auth-modal .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-light);
+}
+
+.auth-modal .form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-light);
+    font-size: 16px;
+}
+
+.auth-modal .form-group input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.2);
+}
+
+/* Анимация для переключения между входом и регистрацией */
+#auth-username-field {
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+#auth-username-field.hidden {
+    display: none;
+}
+
+#auth-username-field.visible {
+    display: block;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+        max-height: 0;
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+        max-height: 100px;
+    }
+}
+
 /* Навигация */
 .tabs {
     display: flex;
@@ -1101,6 +1201,10 @@ body {
         flex-direction: column;
         gap: 8px;
     }
+
+    .avatar-selection {
+        grid-template-columns: repeat(4, 1fr);
+    }
 }
 
 @media (max-width: 480px) {
@@ -1152,6 +1256,10 @@ body {
         flex-direction: column;
         gap: 4px;
     }
+
+    .avatar-selection {
+        grid-template-columns: repeat(3, 1fr);
+    }
 }
 
 /* Утилиты */
@@ -1187,149 +1295,4 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--accent-light);
-}
-/* Стили для профиля пользователя */
-.user-profile {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.user-avatar-container {
-    position: relative;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    overflow: hidden;
-    cursor: pointer;
-    border: 3px solid var(--accent);
-    transition: all 0.3s ease;
-    background: rgba(255, 255, 255, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.user-avatar-container:hover {
-    transform: scale(1.05);
-    border-color: var(--accent-light);
-    box-shadow: 0 4px 12px rgba(233, 69, 96, 0.3);
-}
-
-.user-avatar {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: none;
-}
-
-.user-avatar.show {
-    display: block;
-}
-
-.avatar-placeholder {
-    font-size: 20px;
-    opacity: 0.8;
-}
-
-.user-info {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-}
-
-.user-name {
-    font-weight: 600;
-    color: var(--text-light);
-    font-size: 14px;
-    line-height: 1.2;
-}
-
-.user-email {
-    color: var(--text-muted);
-    font-size: 12px;
-    line-height: 1.2;
-}
-
-/* Адаптивность для профиля */
-@media (max-width: 768px) {
-    .user-profile {
-        gap: 8px;
-    }
-    
-    .user-avatar-container {
-        width: 40px;
-        height: 40px;
-    }
-    
-    .user-info {
-        display: none; /* Скрываем информацию на мобильных */
-    }
-}
-
-/* Дополнительные стили для формы профиля */
-.profile-form {
-    padding: 20px;
-}
-
-.profile-form .form-section {
-    margin-bottom: 24px;
-}
-
-.profile-form .avatar-upload {
-    display: flex;
-    gap: 16px;
-    align-items: flex-start;
-}
-
-.profile-form .avatar-preview {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    overflow: hidden;
-    background: rgba(255, 255, 255, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-}
-
-.profile-form .avatar-preview img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.profile-form .avatar-controls {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    flex: 1;
-}
-
-/* Стили для disabled полей */
-.form-group input:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.form-group small {
-    display: block;
-    margin-top: 4px;
-}
-#auth-username-field {
-    animation: slideDown 0.3s ease;
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
