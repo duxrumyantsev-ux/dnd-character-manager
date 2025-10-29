@@ -35,8 +35,10 @@
                         <span class="user-info">
                             <span id="user-email"></span>
                         </span>
+                        <button id="migrate-data" class="btn-secondary" style="display: none;">
+                            📤 Перенести в облако
+                        </button>
                         <button id="logout-btn" class="btn-secondary">Выйти</button>
-                        <button id="migrate-data" class="btn-secondary" style="display: none;">📤 Перенести в облако</button>
                     </div>
                 </div>
             </div>
@@ -131,8 +133,11 @@
                 </div>
             </div>
             
+            <!-- Вкладка Кубики -->
             <div id="dice" class="tab-pane">
                 <h2>Бросок кубиков</h2>
+                
+                <!-- Основные кубики -->
                 <div class="dice-buttons">
                     <button class="dice" data-sides="4">d4</button>
                     <button class="dice" data-sides="6">d6</button>
@@ -142,7 +147,49 @@
                     <button class="dice" data-sides="20">d20</button>
                     <button class="dice" data-sides="100">d100</button>
                 </div>
-                <div id="dice-result"></div>
+                
+                <!-- Расширенные броски -->
+                <div class="advanced-dice-controls">
+                    <h3>Расширенные броски</h3>
+                    <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                        <div class="form-group">
+                            <label for="dice-count">Количество кубиков</label>
+                            <input type="number" id="dice-count" value="1" min="1" max="10">
+                        </div>
+                        <div class="form-group">
+                            <label for="dice-sides">Грани</label>
+                            <select id="dice-sides">
+                                <option value="4">d4</option>
+                                <option value="6" selected>d6</option>
+                                <option value="8">d8</option>
+                                <option value="10">d10</option>
+                                <option value="12">d12</option>
+                                <option value="20">d20</option>
+                                <option value="100">d100</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="dice-modifier">Модификатор</label>
+                            <input type="number" id="dice-modifier" value="0">
+                        </div>
+                    </div>
+                    <button id="roll-custom" class="btn-primary" style="margin-top: 15px;">
+                        🎲 Бросить кастомные кубики
+                    </button>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button id="roll-advantage" class="btn-secondary">
+                            🎯 Преимущество
+                        </button>
+                        <button id="roll-disadvantage" class="btn-secondary">
+                            ⚠️ Помеха
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="dice-result" class="dice-result-container">
+                    <!-- Анимированные кубики будут появляться здесь -->
+                </div>
             </div>
             
             <div id="combat" class="tab-pane">
@@ -236,11 +283,28 @@
         </div>
     </div>
 
+    <!-- Модальное окно для детального просмотра броска -->
+    <div id="dice-details-modal" class="modal-overlay" style="display: none;">
+        <div class="modal auth-modal">
+            <div class="modal-header">
+                <h3>Результат броска</h3>
+                <button class="btn-close" onclick="document.getElementById('dice-details-modal').style.display = 'none'">×</button>
+            </div>
+            <div class="dice-details-content">
+                <div id="dice-details-result"></div>
+                <div class="dice-history" id="dice-history">
+                    <h4>История бросков</h4>
+                    <div id="dice-history-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="js/db.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/spell-structure.js"></script>
-    <script src="js/character-structure.js"></script>  <!-- Новый файл -->
-    <script src="js/game-data-loader.js"></script>     <!-- Новый файл -->
+    <script src="js/character-structure.js"></script>
+    <script src="js/game-data-loader.js"></script>
     <script src="js/spell-loader.js"></script>
     <script src="js/spells-manager.js"></script>
     <script src="js/app.js"></script>
