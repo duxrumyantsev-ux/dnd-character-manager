@@ -1,23 +1,20 @@
-[file name]: auth.js
-[file content begin]
 class AuthManager {
     constructor() {
         this.user = null;
         this.isInitialized = false;
-        this.onAuthStateChanged = null;
         this.initFirebase();
     }
 
     initFirebase() {
-        const firebaseConfig = {
-            apiKey: "AIzaSyB0GvcaOCDiRcGh3MUBliarT6TwPbE5g4A",
-            authDomain: "dnd-character-manager-10ea1.firebaseapp.com",
-            projectId: "dnd-character-manager-10ea1",
-            storageBucket: "dnd-character-manager-10ea1.firebasestorage.app",
-            messagingSenderId: "449897270877",
-            appId: "1:449897270877:web:8bbadb8b8a31f2f98a07b4",
-            measurementId: "G-1DZSG1MCDS"
-        };
+       const firebaseConfig = {
+    apiKey: "AIzaSyB0GvcaOCDiRcGh3MUBliarT6TwPbE5g4A",
+    authDomain: "dnd-character-manager-10ea1.firebaseapp.com",
+    projectId: "dnd-character-manager-10ea1",
+    storageBucket: "dnd-character-manager-10ea1.firebasestorage.app",
+    messagingSenderId: "449897270877",
+    appId: "1:449897270877:web:8bbadb8b8a31f2f98a07b4",
+    measurementId: "G-1DZSG1MCDS"
+  };
 
         try {
             firebase.initializeApp(firebaseConfig);
@@ -34,10 +31,29 @@ class AuthManager {
     setupAuthListener() {
         this.auth.onAuthStateChanged((user) => {
             this.user = user;
-            if (this.onAuthStateChanged) {
-                this.onAuthStateChanged(user);
-            }
+            this.onAuthStateChanged(user);
         });
+    }
+
+    onAuthStateChanged(user) {
+        // Этот метод будет переопределен в основном приложении
+        if (user) {
+            console.log('User signed in:', user.email);
+            document.getElementById('auth-section').style.display = 'none';
+            document.getElementById('user-section').style.display = 'flex';
+            document.getElementById('user-email').textContent = user.email;
+            
+            // Загружаем и устанавливаем аватар при входе
+            this.getUserProfile().then(profile => {
+                if (profile && profile.avatar) {
+                    document.getElementById('user-avatar').textContent = profile.avatar;
+                }
+            });
+        } else {
+            console.log('User signed out');
+            document.getElementById('auth-section').style.display = 'flex';
+            document.getElementById('user-section').style.display = 'none';
+        }
     }
 
     async signUp(email, password, username) {
@@ -49,10 +65,11 @@ class AuthManager {
                 displayName: username
             });
 
-            // Создаем запись пользователя в Firestore
+            // Создаем запись пользователя в Firestore с аватаром по умолчанию
             await this.db.collection('users').doc(userCredential.user.uid).set({
                 username: username,
                 email: email,
+                avatar: '😊', // Аватар по умолчанию
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 lastLogin: firebase.firestore.FieldValue.serverTimestamp()
             });
@@ -90,61 +107,51 @@ class AuthManager {
         }
     }
 
-    async updateUserProfile(displayName, photoURL) {
+    async updateProfile(username, avatar) {
         try {
+            // Обновляем профиль в Firebase Auth
             await this.auth.currentUser.updateProfile({
-                displayName: displayName,
-                photoURL: photoURL
+                displayName: username
             });
-            
-            // Обновляем данные в Firestore
+
+            // Обновляем в Firestore
             await this.db.collection('users').doc(this.user.uid).update({
-                displayName: displayName,
-                photoURL: photoURL,
+                username: username,
+                avatar: avatar,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            
+
             return { success: true };
         } catch (error) {
-            console.error('Error updating profile:', error);
+            console.error('Update profile error:', error);
             return { success: false, error: error.message };
         }
     }
 
-    async changePassword(currentPassword, newPassword) {
+    async updatePassword(newPassword) {
         try {
-            const user = this.auth.currentUser;
-            const credential = firebase.auth.EmailAuthProvider.credential(
-                user.email, 
-                currentPassword
-            );
-            
-            // Re-authenticate user
-            await user.reauthenticateWithCredential(credential);
-            
-            // Change password
-            await user.updatePassword(newPassword);
-            
+            await this.auth.currentUser.updatePassword(newPassword);
             return { success: true };
         } catch (error) {
-            console.error('Error changing password:', error);
+            console.error('Update password error:', error);
             return { success: false, error: error.message };
         }
     }
 
-    getUserProfile() {
+    async getUserProfile() {
         if (!this.user) return null;
         
-        return {
-            displayName: this.user.displayName,
-            email: this.user.email,
-            photoURL: this.user.photoURL,
-            uid: this.user.uid
-        };
+        try {
+            const userDoc = await this.db.collection('users').doc(this.user.uid).get();
+            return userDoc.exists ? userDoc.data() : null;
+        } catch (error) {
+            console.error('Get user profile error:', error);
+            return null;
+        }
     }
 
     async syncCharacterToCloud(character) {
-        if (!this.user) return { success: false, error: 'User not authenticated' };
+        if (!this.user) return null;
 
         try {
             const characterData = {
@@ -207,8 +214,34 @@ class AuthManager {
     isSignedIn() {
         return this.user !== null;
     }
+    async syncAllCharacters(characters) {
+        if (!this.user) return { success: false, error: 'Not authenticated' };
+
+        try {
+            const results = [];
+            for (const character of characters) {
+                const result = await this.syncCharacterToCloud(character);
+                results.push(result);
+            }
+            return { success: true, results };
+        } catch (error) {
+            console.error('Sync all characters error:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    async getCloudCharacter(characterId) {
+        if (!this.user) return null;
+
+        try {
+            const doc = await this.db.collection('characters').doc(characterId).get();
+            return doc.exists ? { id: doc.id, ...doc.data() } : null;
+        } catch (error) {
+            console.error('Get cloud character error:', error);
+            return null;
+        }
+    }
 }
 
 // Глобальный экземпляр менеджера аутентификации
 const authManager = new AuthManager();
-[file content end]
