@@ -1,4 +1,3 @@
-// Главный класс приложения
 class DnDApp {
     constructor() {
         this.db = database;
@@ -17,14 +16,12 @@ class DnDApp {
 
     async init() {
         try {
-            // Инициализируем базу данных
             await this.db.init();
             console.log('Database initialized');
             
             // Настраиваем обработчики аутентификации
             this.auth.onAuthStateChanged = (user) => this.handleAuthStateChange(user);
             
-            // Инициализируем компоненты
             this.initUI();
             this.initTabs();
             this.initDice();
@@ -39,86 +36,104 @@ class DnDApp {
     }
 
     async handleAuthStateChange(user) {
+        console.log('App handling auth state change:', user ? user.email : 'No user');
+        
         if (user) {
-            // Показываем кнопку миграции если есть локальные данные
-            const localChars = await this.db.getLocalCharacters();
-            document.getElementById('migrate-data').style.display = localChars.length > 0 ? 'inline-block' : 'none';
-            
-            // Загружаем данные из облака
-            await this.loadCloudCharacters();
-            
-            // Загружаем и устанавливаем аватар профиля
-            const profile = await this.auth.getUserProfile();
-            if (profile && profile.avatar) {
-                document.getElementById('user-avatar').textContent = profile.avatar;
+            try {
+                // Загружаем облачных персонажей
+                await this.loadCloudCharacters();
+                
+                // Обновляем аватар
+                const profile = await this.auth.getUserProfile();
+                if (profile && profile.avatar) {
+                    const userAvatar = document.getElementById('user-avatar');
+                    if (userAvatar) userAvatar.textContent = profile.avatar;
+                }
+            } catch (error) {
+                console.error('Error in handleAuthStateChange:', error);
+                // В случае ошибки загружаем локальные данные
+                this.characterManager.loadCharacters();
             }
-            
-            // Запускаем синхронизацию
-            await this.syncWithCloud();
         } else {
-            // Скрываем кнопку миграции
-            document.getElementById('migrate-data').style.display = 'none';
-            
             // Загружаем локальные данные
             this.characterManager.loadCharacters();
         }
     }
 
     initUI() {
-        // Показываем/скрываем элементы в зависимости от аутентификации
-        this.updateUIForAuth();
-    }
-
-    updateUIForAuth() {
-        const isSignedIn = this.auth.isSignedIn();
-        // Можно добавить дополнительную логику отображения
+        // UI автоматически обновляется через authManager.updateAuthUI
     }
 
     initServiceWorker() {
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js')
-                .then(registration => console.log('SW registered'))
-                .catch(error => console.log('SW registration failed'));
+            // Принудительно обновляем Service Worker
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                for(let registration of registrations) {
+                    registration.unregister();
+                }
+                // Регистрируем новый
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('SW registered:', registration);
+                        // Принудительно обновляем кэш
+                        registration.update();
+                    })
+                    .catch(error => console.log('SW registration failed:', error));
+            });
         }
     }
 
     initAuthHandlers() {
-        // Обработчики для форм аутентификации
-        document.getElementById('signin-btn').addEventListener('click', () => this.showAuthModal('signin'));
-        document.getElementById('signup-btn').addEventListener('click', () => this.showAuthModal('signup'));
-        document.getElementById('logout-btn').addEventListener('click', () => this.signOut());
+        // Обработчики для кнопок аутентификации
+        const signinBtn = document.getElementById('signin-btn');
+        const signupBtn = document.getElementById('signup-btn');
+        const logoutBtn = document.getElementById('logout-btn');
         
-        // Закрытие модального окна
-        document.getElementById('auth-modal-close').addEventListener('click', () => this.closeAuthModal());
-        document.getElementById('auth-cancel-btn').addEventListener('click', () => this.closeAuthModal());
+        if (signinBtn) signinBtn.addEventListener('click', () => this.showAuthModal('signin'));
+        if (signupBtn) signupBtn.addEventListener('click', () => this.showAuthModal('signup'));
+        if (logoutBtn) logoutBtn.addEventListener('click', () => this.signOut());
+        
+        // Закрытие модальных окон
+        const authModalClose = document.getElementById('auth-modal-close');
+        const authCancelBtn = document.getElementById('auth-cancel-btn');
+        const profileModalClose = document.getElementById('profile-modal-close');
+        const profileCancelBtn = document.getElementById('profile-cancel-btn');
+        
+        if (authModalClose) authModalClose.addEventListener('click', () => this.closeAuthModal());
+        if (authCancelBtn) authCancelBtn.addEventListener('click', () => this.closeAuthModal());
+        if (profileModalClose) profileModalClose.addEventListener('click', () => this.closeProfileModal());
+        if (profileCancelBtn) profileCancelBtn.addEventListener('click', () => this.closeProfileModal());
         
         // Отправка форм
-        document.getElementById('auth-form').addEventListener('submit', (e) => this.handleAuthSubmit(e));
-        document.getElementById('migrate-data').addEventListener('click', () => this.migrateLocalToCloud());
+        const authForm = document.getElementById('auth-form');
+        const profileForm = document.getElementById('profile-form');
         
-        // Инициализация обработчиков профиля
-        this.initProfileHandlers();
-    }
-
-    initProfileHandlers() {
-        // Обработчик клика на аватар
-        document.getElementById('user-avatar-container').addEventListener('click', () => this.showProfileModal());
+        if (authForm) authForm.addEventListener('submit', (e) => this.handleAuthSubmit(e));
+        if (profileForm) profileForm.addEventListener('submit', (e) => this.handleProfileUpdate(e));
         
-        // Закрытие модального окна профиля
-        document.getElementById('profile-modal-close').addEventListener('click', () => this.closeProfileModal());
-        document.getElementById('profile-cancel-btn').addEventListener('click', () => this.closeProfileModal());
-        
-        // Отправка формы профиля
-        document.getElementById('profile-form').addEventListener('submit', (e) => this.handleProfileUpdate(e));
+        // Обработчики для аватара пользователя
+        const userAvatarContainer = document.getElementById('user-avatar-container');
+        if (userAvatarContainer) {
+            userAvatarContainer.addEventListener('click', () => this.showProfileModal());
+        }
         
         // Обработчики для выбора аватара
-        document.querySelectorAll('.avatar-option').forEach(option => {
-            option.addEventListener('click', (e) => {
-                document.querySelectorAll('.avatar-option').forEach(opt => opt.classList.remove('selected'));
-                e.target.classList.add('selected');
-                document.getElementById('profile-avatar').value = e.target.dataset.avatar;
+        setTimeout(() => {
+            document.querySelectorAll('.avatar-option').forEach(option => {
+                option.addEventListener('click', (e) => {
+                    document.querySelectorAll('.avatar-option').forEach(opt => opt.classList.remove('selected'));
+                    e.target.classList.add('selected');
+                    const avatarInput = document.getElementById('profile-avatar');
+                    if (avatarInput) avatarInput.value = e.target.dataset.avatar;
+                });
             });
-        });
+        }, 100);
+        
+        // Кнопка миграции данных
+        const migrateBtn = document.getElementById('migrate-data');
+        if (migrateBtn) {
+            migrateBtn.addEventListener('click', () => this.migrateLocalToCloud());
+        }
     }
 
     showAuthModal(mode = 'signin') {
@@ -126,6 +141,8 @@ class DnDApp {
         const title = document.getElementById('auth-modal-title');
         const submitBtn = document.getElementById('auth-submit-btn');
         const usernameField = document.getElementById('auth-username-field');
+
+        if (!modal || !title || !submitBtn || !usernameField) return;
 
         if (mode === 'signup') {
             title.textContent = 'Регистрация';
@@ -143,29 +160,42 @@ class DnDApp {
         modal.style.display = 'flex';
         
         // Очищаем форму
-        document.getElementById('auth-form').reset();
+        const authForm = document.getElementById('auth-form');
+        if (authForm) authForm.reset();
     }
 
     closeAuthModal() {
-        document.getElementById('auth-modal').style.display = 'none';
-        document.getElementById('auth-error').textContent = '';
+        const modal = document.getElementById('auth-modal');
+        const errorElement = document.getElementById('auth-error');
+        
+        if (modal) modal.style.display = 'none';
+        if (errorElement) errorElement.textContent = '';
     }
 
     async handleAuthSubmit(e) {
         e.preventDefault();
         
         const modal = document.getElementById('auth-modal');
-        const mode = modal.dataset.mode;
+        const mode = modal ? modal.dataset.mode : 'signin';
         const email = document.getElementById('auth-email').value;
         const password = document.getElementById('auth-password').value;
         const username = document.getElementById('auth-username').value;
         const errorElement = document.getElementById('auth-error');
 
-        errorElement.textContent = '';
+        if (!email || !password) {
+            if (errorElement) errorElement.textContent = 'Заполните все обязательные поля';
+            return;
+        }
+
+        if (errorElement) errorElement.textContent = '';
 
         try {
             let result;
             if (mode === 'signup') {
+                if (!username) {
+                    if (errorElement) errorElement.textContent = 'Введите имя пользователя';
+                    return;
+                }
                 result = await this.auth.signUp(email, password, username);
             } else {
                 result = await this.auth.signIn(email, password);
@@ -174,17 +204,17 @@ class DnDApp {
             if (result.success) {
                 this.closeAuthModal();
             } else {
-                errorElement.textContent = result.error;
+                if (errorElement) errorElement.textContent = result.error;
             }
         } catch (error) {
-            errorElement.textContent = 'Произошла ошибка: ' + error.message;
+            if (errorElement) errorElement.textContent = 'Произошла ошибка: ' + error.message;
         }
     }
 
     async signOut() {
         const result = await this.auth.signOut();
         if (result.success) {
-            this.characterManager.loadCharacters(); // Переключаемся на локальные данные
+            this.characterManager.loadCharacters();
         }
     }
 
@@ -192,14 +222,20 @@ class DnDApp {
         const modal = document.getElementById('profile-modal');
         const user = this.auth.getCurrentUser();
         
+        if (!modal || !user) return;
+
         // Заполняем текущие данные
-        document.getElementById('profile-username').value = user.displayName || '';
+        const usernameInput = document.getElementById('profile-username');
+        if (usernameInput) usernameInput.value = user.displayName || '';
         
-        // Загружаем дополнительные данные профиля из Firestore
+        // Загружаем дополнительные данные профиля
         this.auth.getUserProfile().then(profile => {
             if (profile) {
-                document.getElementById('profile-avatar').value = profile.avatar || '😊';
-                document.getElementById('user-avatar').textContent = profile.avatar || '😊';
+                const avatarInput = document.getElementById('profile-avatar');
+                if (avatarInput) avatarInput.value = profile.avatar || '😊';
+                
+                const userAvatar = document.getElementById('user-avatar');
+                if (userAvatar) userAvatar.textContent = profile.avatar || '😊';
                 
                 // Выбираем текущий аватар в списке
                 document.querySelectorAll('.avatar-option').forEach(option => {
@@ -214,10 +250,16 @@ class DnDApp {
     }
 
     closeProfileModal() {
-        document.getElementById('profile-modal').style.display = 'none';
-        document.getElementById('profile-error').textContent = '';
-        document.getElementById('profile-password').value = '';
-        document.getElementById('profile-password-confirm').value = '';
+        const modal = document.getElementById('profile-modal');
+        const errorElement = document.getElementById('profile-error');
+        
+        if (modal) modal.style.display = 'none';
+        if (errorElement) errorElement.textContent = '';
+        
+        const passwordInput = document.getElementById('profile-password');
+        const confirmInput = document.getElementById('profile-password-confirm');
+        if (passwordInput) passwordInput.value = '';
+        if (confirmInput) confirmInput.value = '';
     }
 
     async handleProfileUpdate(e) {
@@ -229,10 +271,15 @@ class DnDApp {
         const confirmPassword = document.getElementById('profile-password-confirm').value;
         const errorElement = document.getElementById('profile-error');
         
-        errorElement.textContent = '';
+        if (errorElement) errorElement.textContent = '';
+        
+        if (!username) {
+            if (errorElement) errorElement.textContent = 'Введите имя пользователя';
+            return;
+        }
         
         if (newPassword && newPassword !== confirmPassword) {
-            errorElement.textContent = 'Пароли не совпадают';
+            if (errorElement) errorElement.textContent = 'Пароли не совпадают';
             return;
         }
         
@@ -240,7 +287,7 @@ class DnDApp {
             // Обновляем профиль
             const profileResult = await this.auth.updateProfile(username, avatar);
             if (!profileResult.success) {
-                errorElement.textContent = profileResult.error;
+                if (errorElement) errorElement.textContent = profileResult.error;
                 return;
             }
             
@@ -248,18 +295,15 @@ class DnDApp {
             if (newPassword) {
                 const passwordResult = await this.auth.updatePassword(newPassword);
                 if (!passwordResult.success) {
-                    errorElement.textContent = passwordResult.error;
+                    if (errorElement) errorElement.textContent = passwordResult.error;
                     return;
                 }
             }
             
-            // Обновляем аватар в хедере
-            document.getElementById('user-avatar').textContent = avatar;
-            
             this.closeProfileModal();
             alert('Профиль успешно обновлен!');
         } catch (error) {
-            errorElement.textContent = 'Ошибка при обновлении профиля: ' + error.message;
+            if (errorElement) errorElement.textContent = 'Ошибка при обновлении профиля: ' + error.message;
         }
     }
 
@@ -270,7 +314,6 @@ class DnDApp {
             this.characterManager.renderCharacters(cloudCharacters);
         } catch (error) {
             console.error('Error loading cloud characters:', error);
-            // В случае ошибки загружаем локальные данные
             this.characterManager.loadCharacters();
         }
     }
@@ -327,25 +370,30 @@ class DnDApp {
         const result = Math.floor(Math.random() * sides) + 1;
         const resultElement = document.getElementById('dice-result');
         
-        resultElement.innerHTML = `
-            <div class="result">
-                <span class="dice-roll">d${sides}:</span>
-                <span class="result-number">${result}</span>
-            </div>
-        `;
+        if (resultElement) {
+            resultElement.innerHTML = `
+                <div class="result">
+                    <span class="dice-roll">d${sides}:</span>
+                    <span class="result-number">${result}</span>
+                </div>
+            `;
 
-        resultElement.style.transform = 'scale(1.1)';
-        setTimeout(() => {
-            resultElement.style.transform = 'scale(1)';
-        }, 200);
+            resultElement.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                resultElement.style.transform = 'scale(1)';
+            }, 200);
+        }
     }
 
     // Менеджер персонажей
     initCharacterManager() {
         this.characterManager = new CharacterManager(this.db, this.auth);
-        document.getElementById('add-character').addEventListener('click', () => {
-            this.characterManager.showCharacterForm();
-        });
+        const addCharacterBtn = document.getElementById('add-character');
+        if (addCharacterBtn) {
+            addCharacterBtn.addEventListener('click', () => {
+                this.characterManager.showCharacterForm();
+            });
+        }
     }
 
     // Менеджер заклинаний
@@ -356,7 +404,6 @@ class DnDApp {
     // Загрузка заклинаний
     async loadSpells() {
         try {
-            // Пытаемся загрузить из Firestore, если нет - из JSON
             let spells = await this.spellLoader.loadFromFirestore();
             if (spells.length === 0) {
                 spells = await this.spellLoader.loadFromJSON();
@@ -370,26 +417,27 @@ class DnDApp {
     }
 
     setupSpellsFilters() {
-        // Фильтр по уровню
-        document.getElementById('spell-level-filter').addEventListener('change', (e) => {
+        const levelFilter = document.getElementById('spell-level-filter');
+        const classFilter = document.getElementById('spell-class-filter');
+        const schoolFilter = document.getElementById('spell-school-filter');
+        const searchFilter = document.getElementById('spell-search');
+
+        if (levelFilter) levelFilter.addEventListener('change', (e) => {
             this.currentSpellFilters.level = e.target.value;
             this.applySpellsFilters();
         });
 
-        // Фильтр по классу
-        document.getElementById('spell-class-filter').addEventListener('change', (e) => {
+        if (classFilter) classFilter.addEventListener('change', (e) => {
             this.currentSpellFilters.class = e.target.value;
             this.applySpellsFilters();
         });
 
-        // Фильтр по школе
-        document.getElementById('spell-school-filter').addEventListener('change', (e) => {
+        if (schoolFilter) schoolFilter.addEventListener('change', (e) => {
             this.currentSpellFilters.school = e.target.value;
             this.applySpellsFilters();
         });
 
-        // Поиск
-        document.getElementById('spell-search').addEventListener('input', (e) => {
+        if (searchFilter) searchFilter.addEventListener('input', (e) => {
             this.currentSpellFilters.search = e.target.value;
             this.applySpellsFilters();
         });
@@ -404,54 +452,46 @@ class DnDApp {
     async loadCombat() {
         console.log('Loading combat...');
     }
+
+    // Миграция локальных данных в облако
     async migrateLocalToCloud() {
         if (!this.auth.isSignedIn()) {
             alert('Необходимо войти в систему для миграции данных');
             return;
         }
 
-        const user = this.auth.getCurrentUser();
         if (confirm('Хотите перенести всех локальных персонажей в облако?')) {
             try {
-                const results = await this.db.migrateLocalToCloud(user.uid);
-                alert(`Успешно перенесено ${results.length} персонажей в облако`);
+                const localChars = await this.db.getLocalCharacters();
+                let migratedCount = 0;
+
+                for (const char of localChars) {
+                    const result = await this.auth.syncCharacterToCloud(char);
+                    if (result.success) {
+                        migratedCount++;
+                        // Помечаем персонажа как облачного
+                        char.source = 'cloud';
+                        char.cloudId = result.id;
+                        await this.db.updateCharacter(char);
+                    }
+                }
+
+                alert(`Успешно перенесено ${migratedCount} персонажей в облако`);
                 this.loadCloudCharacters();
+                
+                // Скрываем кнопку миграции
+                const migrateBtn = document.getElementById('migrate-data');
+                if (migrateBtn) migrateBtn.style.display = 'none';
+                
             } catch (error) {
                 console.error('Migration error:', error);
                 alert('Ошибка при переносе данных: ' + error.message);
             }
         }
     }
-
-    async syncWithCloud() {
-        if (!this.auth.isSignedIn()) return;
-
-        try {
-            const user = this.auth.getCurrentUser();
-            
-            // Получаем несинхронизированных персонажей
-            const unsyncedChars = await this.db.getUnsyncedCharacters(user.uid);
-            
-            // Синхронизируем каждого персонажа
-            for (const char of unsyncedChars) {
-                const result = await this.auth.syncCharacterToCloud(char);
-                if (result.success) {
-                    await this.db.markCharacterAsSynced(char.id, result.id);
-                }
-            }
-            
-            // Загружаем облачных персонажей для сравнения
-            const cloudChars = await this.auth.getCloudCharacters();
-            await this.db.importCloudCharacters(cloudChars, user.uid);
-            
-            console.log('Sync completed');
-        } catch (error) {
-            console.error('Sync error:', error);
-        }
-    }
 }
 
-// Менеджер персонажей (обновленная версия)
+// Менеджер персонажей
 class CharacterManager {
     constructor(db, auth) {
         this.db = db;
@@ -463,10 +503,8 @@ class CharacterManager {
     async loadCharacters() {
         try {
             if (this.auth.isSignedIn()) {
-                // Загружаем из облака
                 this.characters = await this.auth.getCloudCharacters();
             } else {
-                // Загружаем локально
                 this.characters = await this.db.getCharacters();
             }
             this.renderCharacters(this.characters);
@@ -477,6 +515,7 @@ class CharacterManager {
 
     renderCharacters(characters) {
         const charactersList = document.getElementById('characters-list');
+        if (!charactersList) return;
         
         if (characters.length === 0) {
             const message = this.auth.isSignedIn() ? 
@@ -704,54 +743,61 @@ class CharacterManager {
         const avatarInput = document.getElementById('avatar-input');
         const avatarPreview = document.getElementById('avatar-preview');
         
-        // Обработчик выбора аватара
-        avatarInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                if (file.size > 2 * 1024 * 1024) { // 2MB limit
-                    alert('Размер файла не должен превышать 2MB');
-                    return;
+        if (avatarInput) {
+            avatarInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    if (file.size > 2 * 1024 * 1024) {
+                        alert('Размер файла не должен превышать 2MB');
+                        return;
+                    }
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        if (avatarPreview) {
+                            avatarPreview.innerHTML = `<img src="${e.target.result}" alt="Preview" />`;
+                        }
+                        this.avatarFile = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
                 }
-                
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    avatarPreview.innerHTML = `<img src="${e.target.result}" alt="Preview" />`;
-                    this.avatarFile = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        });
+            });
+        }
 
-        // Обработчик отправки формы
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.saveCharacter();
-        });
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.saveCharacter();
+            });
+        }
 
         // Обновление модификаторов характеристик в реальном времени
         document.querySelectorAll('.ability-score').forEach(input => {
             input.addEventListener('input', (e) => {
                 const value = parseInt(e.target.value) || 10;
                 const modifier = Math.floor((value - 10) / 2);
-                e.target.parentElement.querySelector('.ability-modifier').textContent = 
-                    `Мод: ${modifier >= 0 ? '+' + modifier : modifier}`;
+                const modifierElement = e.target.parentElement.querySelector('.ability-modifier');
+                if (modifierElement) {
+                    modifierElement.textContent = `Мод: ${modifier >= 0 ? '+' + modifier : modifier}`;
+                }
             });
         });
     }
 
     removeAvatar() {
         const avatarPreview = document.getElementById('avatar-preview');
-        avatarPreview.innerHTML = '<div class="avatar-placeholder">🎮</div>';
+        if (avatarPreview) {
+            avatarPreview.innerHTML = '<div class="avatar-placeholder">🎮</div>';
+        }
         this.avatarFile = null;
-        document.getElementById('avatar-input').value = '';
+        const avatarInput = document.getElementById('avatar-input');
+        if (avatarInput) avatarInput.value = '';
     }
 
     async getCharacter(characterId) {
         if (this.auth.isSignedIn()) {
-            // Ищем в облачных данных
             return this.characters.find(char => char.id === characterId);
         } else {
-            // Ищем в локальных данных
             return await this.db.get('characters', parseInt(characterId));
         }
     }
@@ -760,6 +806,8 @@ class CharacterManager {
         const form = document.getElementById('character-form');
         const characterId = document.getElementById('character-id').value;
         
+        if (!form) return;
+
         // Сбор данных формы
         const characterData = {
             name: document.getElementById('character-name').value,
