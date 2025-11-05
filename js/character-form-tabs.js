@@ -5,9 +5,32 @@ class CharacterFormTabs {
         this.character = character;
         this.currentTab = 'basic';
         this.tabs = ['basic', 'abilities', 'equipment', 'spells'];
+        
+        console.log('=== DEBUG CharacterFormTabs constructor ===');
+        console.log('Character data:', character);
+        
+        // Создаем AdvancedCharacter только если character не null
+        if (character) {
+            this.advancedChar = new AdvancedCharacter(character);
+            console.log('AdvancedChar created:', this.advancedChar);
+            console.log('Is spellcaster:', this.advancedChar.isSpellcaster());
+        } else {
+            this.advancedChar = null;
+            console.log('AdvancedChar is null - no character data');
+        }
+        console.log('====================');
     }
 
     render() {
+        const isSpellcaster = this.advancedChar ? this.advancedChar.isSpellcaster() : false;
+        
+        console.log('=== DEBUG CharacterFormTabs render ===');
+        console.log('Is spellcaster:', isSpellcaster);
+        console.log('AdvancedChar exists:', !!this.advancedChar);
+        console.log('Character class:', this.character?.class);
+        console.log('Character level:', this.character?.level);
+        console.log('====================');
+        
         return `
             <div class="character-form-tabs">
                 <div class="tabs-navigation">
@@ -23,17 +46,19 @@ class CharacterFormTabs {
                         <span class="tab-icon">🎒</span>
                         Снаряжение
                     </button>
+                    ${isSpellcaster ? `
                     <button type="button" class="tab-nav-btn" data-tab="spells">
                         <span class="tab-icon">✨</span>
                         Магия
                     </button>
+                    ` : ''}
                 </div>
                 
                 <div class="tab-content-wrapper">
                     ${this.renderBasicTab()}
                     ${this.renderAbilitiesTab()}
                     ${this.renderEquipmentTab()}
-                    ${this.renderSpellsTab()}
+                    ${isSpellcaster ? this.renderSpellsTab() : ''}
                 </div>
             </div>
         `;
@@ -87,7 +112,7 @@ class CharacterFormTabs {
                         
                         <div class="form-group">
                             <label for="character-class">Класс *</label>
-                            <select id="character-class" required>
+                            <select id="character-class" required onchange="app.characterManager.onClassChange()">
                                 <option value="">Выберите класс</option>
                                 ${this.characterManager.renderClassOptions(this.character)}
                             </select>
@@ -142,7 +167,7 @@ class CharacterFormTabs {
                         
                         <div class="form-group">
                             <label for="character-level">Уровень *</label>
-                            <input type="number" id="character-level" value="${this.character?.level || 1}" min="1" max="20" required>
+                            <input type="number" id="character-level" value="${this.character?.level || 1}" min="1" max="20" required onchange="app.characterManager.onLevelChange()">
                         </div>
                     </div>
                 </div>
@@ -290,7 +315,7 @@ class CharacterFormTabs {
                     <div class="equipment-management">
                         <div class="equipment-header">
                             <h4>Инвентарь</h4>
-                            <button type="button" class="btn-secondary btn-sm" onclick="this.addEquipmentItem()">＋ Добавить</button>
+                            <button type="button" class="btn-secondary btn-sm" onclick="app.characterManager.addEquipmentItem()">＋ Добавить</button>
                         </div>
                         <div id="equipment-list" class="equipment-list">
                             ${this.renderEquipmentList()}
@@ -328,19 +353,136 @@ class CharacterFormTabs {
     }
 
     renderSpellsTab() {
+        if (!this.advancedChar || !this.advancedChar.isSpellcaster()) {
+            return `
+                <div id="tab-spells" class="tab-pane">
+                    <div class="form-section">
+                        <p>Этот класс не имеет доступа к магии или уровень персонажа слишком низок.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Обновляем расчеты магии
+        this.advancedChar.updateSpellcasting();
+        const spellcasting = this.advancedChar.spellcasting;
+        const knownSpellsCount = this.advancedChar.getKnownSpellsCount();
+        const currentSpellsCount = this.character?.spells?.length || 0;
+
         return `
             <div id="tab-spells" class="tab-pane">
                 <div class="form-section">
-                    <label class="section-label">Заклинания</label>
-                    <div class="spellcasting-info">
-                        <p>Эта вкладка доступна для магических классов. Выберите класс заклинателя для отображения параметров магии.</p>
-                        <div class="spell-slots-container" id="spell-slots-container">
-                            <!-- Слоты заклинаний будут генерироваться динамически -->
+                    <label class="section-label">Заклинательная информация</label>
+                    <div class="spellcasting-info-grid">
+                        <div class="form-group">
+                            <label>Заклинательная характеристика</label>
+                            <div class="spellcasting-ability-display">
+                                ${ABILITY_NAMES[spellcasting.ability] || 'Не определена'}
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Бонус атаки заклинанием</label>
+                            <div class="spell-attack-display">
+                                +${spellcasting.spellAttack}
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Сл спасброска</label>
+                            <div class="spell-save-dc-display">
+                                ${spellcasting.spellSaveDC}
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Известные заклинания</label>
+                            <div class="known-spells-display">
+                                ${currentSpellsCount} / ${knownSpellsCount === 'all' ? 'все' : knownSpellsCount}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <label class="section-label">Ячейки заклинаний</label>
+                    <div class="spell-slots-container">
+                        ${this.renderSpellSlots()}
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <label class="section-label">Известные заклинания</label>
+                    <div class="spells-management">
+                        <div class="spells-header">
+                            <h4>Список заклинаний</h4>
+                            <button type="button" class="btn-primary" onclick="app.characterManager.showSpellSelectionModal()">
+                                ＋ Добавить заклинание
+                            </button>
+                        </div>
+                        <div id="spells-list" class="spells-list">
+                            ${this.renderSpellsList()}
                         </div>
                     </div>
                 </div>
             </div>
         `;
+    }
+
+    renderSpellSlots() {
+        if (!this.advancedChar) return '';
+        
+        const slots = this.advancedChar.spellcasting.slots;
+        let html = '';
+        
+        for (let level = 1; level <= 9; level++) {
+            const slot = slots[level];
+            if (slot.total > 0) {
+                html += `
+                    <div class="spell-slot-level">
+                        <div class="spell-slot-header">
+                            <span class="spell-slot-level-label">${level} уровень</span>
+                            <span class="spell-slot-count">${slot.used}/${slot.total}</span>
+                        </div>
+                        <div class="spell-slots-row">
+                            ${Array.from({ length: slot.total }, (_, i) => `
+                                <div class="spell-slot ${i < slot.used ? 'used' : 'available'}" 
+                                     data-level="${level}" 
+                                     data-index="${i}"
+                                     onclick="app.characterManager.toggleSpellSlot(${level}, ${i})">
+                                    ${i < slot.used ? '●' : '○'}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        return html || '<p>Нет доступных ячеек заклинаний</p>';
+    }
+
+    renderSpellsList() {
+        if (!this.character?.spells?.length) {
+            return '<div class="empty-spells">Заклинания не добавлены</div>';
+        }
+        
+        return this.character.spells.map((spell, index) => `
+            <div class="spell-item" data-index="${index}">
+                <div class="spell-info">
+                    <strong class="spell-name">${spell.name}</strong>
+                    <span class="spell-level">${spell.level === 0 ? 'Заговор' : spell.level + ' уровень'}</span>
+                </div>
+                <div class="spell-actions">
+                    <button type="button" class="btn-action btn-view" onclick="app.characterManager.viewSpellDetails('${spell.id}')" title="Просмотр">
+                        👁️
+                    </button>
+                    <button type="button" class="btn-action btn-delete" onclick="app.characterManager.removeSpell(${index})" title="Удалить">
+                        🗑️
+                    </button>
+                </div>
+            </div>
+        `).join('');
     }
 
     renderEnhancedAbilityInput(ability, label) {
@@ -393,7 +535,7 @@ class CharacterFormTabs {
                 <input type="text" class="equipment-name" value="${item.name || ''}" placeholder="Название предмета">
                 <input type="text" class="equipment-quantity" value="${item.quantity || 1}" placeholder="1">
                 <input type="text" class="equipment-weight" value="${item.weight || ''}" placeholder="Вес">
-                <button type="button" class="btn-danger btn-sm" onclick="this.removeEquipmentItem(${index})">🗑️</button>
+                <button type="button" class="btn-danger btn-sm" onclick="app.characterManager.removeEquipmentItem(${index})">🗑️</button>
             </div>
         `).join('');
     }
