@@ -236,6 +236,10 @@ class CharacterManager {
     async showCharacterForm(characterId = null) {
         const character = characterId ? await this.getCharacter(characterId) : null;
         
+        console.log('=== DEBUG showCharacterForm ===');
+        console.log('Character ID:', characterId);
+        console.log('Loaded character:', character);
+        
         if (characterId && !character) {
             alert('Персонаж не найден');
             return;
@@ -272,8 +276,142 @@ class CharacterManager {
 
         document.body.insertAdjacentHTML('beforeend', formHtml);
         this.setupFormHandlers(character);
+        
+        console.log('=== Form setup complete ===');
     }
 
+    // Сохранение состояния формы перед перерисовкой
+    saveFormState() {
+        const formState = {
+            basic: {},
+            abilities: {},
+            skills: {},
+            savingThrows: {},
+            equipment: [],
+            spellcasting: {}
+        };
+
+        // Сохраняем основные поля
+        const basicFields = ['character-name', 'character-race', 'character-class', 
+                            'character-subclass', 'character-background', 'character-alignment',
+                            'character-level', 'character-experience', 'character-max-hp',
+                            'character-current-hp', 'character-temp-hp', 'character-armor-class',
+                            'character-speed', 'character-initiative', 'character-hit-dice'];
+        
+        basicFields.forEach(field => {
+            const element = document.getElementById(field);
+            if (element) formState.basic[field] = element.value;
+        });
+
+        // Сохраняем характеристики
+        Object.keys(ABILITY_NAMES).forEach(ability => {
+            const element = document.getElementById(`ability-${ability}`);
+            if (element) formState.abilities[ability] = element.value;
+        });
+
+        // Сохраняем навыки
+        Object.keys(this.initializeSkills()).forEach(skill => {
+            const skillCheckbox = document.getElementById(`skill-${skill}`);
+            const expertiseCheckbox = document.getElementById(`expertise-${skill}`);
+            if (skillCheckbox && expertiseCheckbox) {
+                formState.skills[skill] = {
+                    proficient: skillCheckbox.checked,
+                    expertise: expertiseCheckbox.checked
+                };
+            }
+        });
+
+        // Сохраняем спасброски
+        Object.keys(ABILITY_NAMES).forEach(ability => {
+            const checkbox = document.getElementById(`saving-throw-${ability}`);
+            if (checkbox) {
+                formState.savingThrows[ability] = checkbox.checked;
+            }
+        });
+
+        // Сохраняем снаряжение
+        const equipmentItems = document.querySelectorAll('.equipment-item');
+        equipmentItems.forEach(item => {
+            const name = item.querySelector('.equipment-name')?.value;
+            const quantity = item.querySelector('.equipment-quantity')?.value;
+            const weight = item.querySelector('.equipment-weight')?.value;
+            if (name) {
+                formState.equipment.push({ name, quantity, weight });
+            }
+        });
+
+        // Сохраняем аватар
+        formState.avatar = this.avatarFile;
+
+        return formState;
+    }
+
+    // Восстановление состояния формы после перерисовки
+    restoreFormState(formState) {
+        if (!formState) return;
+
+        // Восстанавливаем основные поля
+        Object.keys(formState.basic).forEach(field => {
+            const element = document.getElementById(field);
+            if (element) element.value = formState.basic[field];
+        });
+
+        // Восстанавливаем характеристики
+        Object.keys(formState.abilities).forEach(ability => {
+            const element = document.getElementById(`ability-${ability}`);
+            if (element) {
+                element.value = formState.abilities[ability];
+                this.updateAbilityModifier(ability);
+            }
+        });
+
+        // Восстанавливаем навыки
+        Object.keys(formState.skills).forEach(skill => {
+            const skillCheckbox = document.getElementById(`skill-${skill}`);
+            const expertiseCheckbox = document.getElementById(`expertise-${skill}`);
+            if (skillCheckbox && expertiseCheckbox) {
+                skillCheckbox.checked = formState.skills[skill].proficient;
+                expertiseCheckbox.checked = formState.skills[skill].expertise;
+                expertiseCheckbox.disabled = !formState.skills[skill].proficient;
+            }
+        });
+
+        // Восстанавливаем спасброски
+        Object.keys(formState.savingThrows).forEach(ability => {
+            const checkbox = document.getElementById(`saving-throw-${ability}`);
+            if (checkbox) {
+                checkbox.checked = formState.savingThrows[ability];
+            }
+        });
+
+        // Восстанавливаем снаряжение
+        if (formState.equipment.length > 0) {
+            const equipmentList = document.getElementById('equipment-list');
+            if (equipmentList) {
+                equipmentList.innerHTML = '';
+                formState.equipment.forEach(item => {
+                    const itemHtml = `
+                        <div class="equipment-item">
+                            <input type="text" class="equipment-name" value="${item.name || ''}" placeholder="Название предмета">
+                            <input type="text" class="equipment-quantity" value="${item.quantity || '1'}" placeholder="1">
+                            <input type="text" class="equipment-weight" value="${item.weight || ''}" placeholder="Вес">
+                            <button type="button" class="btn-danger btn-sm" onclick="this.parentElement.remove()">🗑️</button>
+                        </div>
+                    `;
+                    equipmentList.insertAdjacentHTML('beforeend', itemHtml);
+                });
+            }
+        }
+
+        // Восстанавливаем аватар
+        if (formState.avatar) {
+            this.avatarFile = formState.avatar;
+            const avatarPreview = document.getElementById('avatar-preview');
+            if (avatarPreview) {
+                avatarPreview.innerHTML = `<img src="${formState.avatar}" alt="Preview" />`;
+            }
+        }
+    }
     async editCharacter(characterId) {
         try {
             console.log('=== EDIT CHARACTER DEBUG ===');
@@ -494,7 +632,41 @@ class CharacterManager {
         }
         return 'intelligence';
     }
+    // Обновим метод updateSubclassOptions для работы с сохраненным состоянием
+    updateSubclassOptions() {
+        const classSelect = document.getElementById('character-class');
+        const levelInput = document.getElementById('character-level');
+        const subclassSelect = document.getElementById('character-subclass');
+        
+        if (!classSelect || !levelInput || !subclassSelect) return;
 
+        const classId = classSelect.value;
+        const level = parseInt(levelInput.value) || 1;
+        
+        if (!classId) {
+            subclassSelect.innerHTML = '<option value="">Выберите подкласс</option>';
+            return;
+        }
+        
+        const tempCharacter = { classId, level };
+        const availableSubclasses = this.gameDataLoader.getAvailableSubclasses(tempCharacter);
+        
+        // Сохраняем текущее значение подкласса
+        const currentSubclass = subclassSelect.value;
+        
+        subclassSelect.innerHTML = '<option value="">Выберите подкласс</option>';
+        availableSubclasses.forEach(subclass => {
+            const option = document.createElement('option');
+            option.value = subclass.id;
+            option.textContent = subclass.name;
+            subclassSelect.appendChild(option);
+        });
+        
+        // Восстанавливаем выбранный подкласс, если он доступен
+        if (currentSubclass && availableSubclasses.some(sc => sc.id === currentSubclass)) {
+            subclassSelect.value = currentSubclass;
+        }
+    }
     // Обработчики формы
     setupFormHandlers(character) {
         const form = document.getElementById('character-form');
@@ -546,29 +718,18 @@ class CharacterManager {
             input.addEventListener('input', (e) => {
                 this.updateAbilityModifier(e.target.dataset.ability);
             });
+            
+            // Инициализируем модификаторы при загрузке
+            const ability = input.dataset.ability;
+            if (ability) {
+                this.updateAbilityModifier(ability);
+            }
         });
 
         // Обработчик изменения класса и уровня
         if (classSelect && levelInput && subclassSelect) {
             const updateSubclassOptions = () => {
-                const classId = classSelect.value;
-                const level = parseInt(levelInput.value) || 1;
-                
-                if (!classId) {
-                    subclassSelect.innerHTML = '<option value="">Выберите подкласс</option>';
-                    return;
-                }
-                
-                const tempCharacter = { classId, level };
-                const availableSubclasses = this.gameDataLoader.getAvailableSubclasses(tempCharacter);
-                
-                subclassSelect.innerHTML = '<option value="">Выберите подкласс</option>';
-                availableSubclasses.forEach(subclass => {
-                    const option = document.createElement('option');
-                    option.value = subclass.id;
-                    option.textContent = subclass.name;
-                    subclassSelect.appendChild(option);
-                });
+                this.updateSubclassOptions();
             };
             
             classSelect.addEventListener('change', updateSubclassOptions);
@@ -602,17 +763,25 @@ class CharacterManager {
             });
         }
     }
-
+    initializeAllAbilityModifiers() {
+        Object.keys(ABILITY_NAMES).forEach(ability => {
+            this.updateAbilityModifier(ability);
+        });
+    }
     updateAbilityModifier(ability) {
         const input = document.getElementById(`ability-${ability}`);
+        if (!input) return;
+        
         const value = parseInt(input.value) || 10;
         const modifier = Math.floor((value - 10) / 2);
         const modifierDisplay = modifier >= 0 ? `+${modifier}` : modifier;
         
         const card = input.closest('.ability-card');
-        const modifierElement = card.querySelector('.modifier-value');
-        if (modifierElement) {
-            modifierElement.textContent = modifierDisplay;
+        if (card) {
+            const modifierElement = card.querySelector('.modifier-value');
+            if (modifierElement) {
+                modifierElement.textContent = modifierDisplay;
+            }
         }
     }
 
@@ -626,21 +795,562 @@ class CharacterManager {
         if (avatarInput) avatarInput.value = '';
     }
 
+    // Методы для работы с магией
+    onClassChange() {
+        console.log('=== DEBUG onClassChange START ===');
+        
+        // Сохраняем состояние формы перед перерисовкой
+        const formState = this.saveFormState();
+        console.log('Form state saved:', formState);
+        
+        // При изменении класса перерисовываем вкладки с задержкой
+        setTimeout(() => {
+            const characterModal = document.getElementById('character-modal');
+            if (characterModal) {
+                const formTabs = document.querySelector('.character-form-tabs');
+                if (formTabs) {
+                    const characterId = document.getElementById('character-id').value;
+                    
+                    // Создаем временный объект персонажа с текущими данными из формы
+                    const currentClassId = document.getElementById('character-class')?.value;
+                    const currentLevel = parseInt(document.getElementById('character-level')?.value) || 1;
+                    const classData = this.gameDataLoader.getClassById(currentClassId);
+                    
+                    console.log('Current class ID from form:', currentClassId);
+                    console.log('Current level from form:', currentLevel);
+                    console.log('Class data:', classData);
+                    
+                    const tempCharacter = { 
+                        classId: currentClassId,
+                        class: classData?.name || '', // Используем русское название
+                        level: currentLevel
+                    };
+                    
+                    console.log('Temp character for form tabs:', tempCharacter);
+                    
+                    const newFormTabs = new CharacterFormTabs(this, tempCharacter);
+                    formTabs.outerHTML = newFormTabs.render();
+                    
+                    // Восстанавливаем состояние формы
+                    this.restoreFormState(formState);
+                    this.setupFormHandlers(tempCharacter);
+                    
+                    // Обновляем подклассы на основе нового класса
+                    this.updateSubclassOptions();
+                    
+                    console.log('=== DEBUG onClassChange COMPLETE ===');
+                } else {
+                    console.error('Form tabs element not found');
+                }
+            } else {
+                console.error('Character modal not found');
+            }
+        }, 100);
+    }
+
+    onLevelChange() {
+        console.log('=== DEBUG onLevelChange START ===');
+        
+        // Сохраняем состояние формы перед перерисовкой
+        const formState = this.saveFormState();
+        
+        // При изменении уровня перерисовываем вкладки с задержкой
+        setTimeout(() => {
+            const characterModal = document.getElementById('character-modal');
+            if (characterModal) {
+                const formTabs = document.querySelector('.character-form-tabs');
+                if (formTabs) {
+                    const characterId = document.getElementById('character-id').value;
+                    
+                    // Создаем временный объект персонажа с текущими данными из формы
+                    const currentClassId = document.getElementById('character-class')?.value;
+                    const currentLevel = parseInt(document.getElementById('character-level')?.value) || 1;
+                    const classData = this.gameDataLoader.getClassById(currentClassId);
+                    
+                    console.log('Current class ID from form:', currentClassId);
+                    console.log('Current level from form:', currentLevel);
+                    console.log('Class data:', classData);
+                    
+                    const tempCharacter = { 
+                        classId: currentClassId,
+                        class: classData?.name || '', // Используем русское название
+                        level: currentLevel
+                    };
+                    
+                    const newFormTabs = new CharacterFormTabs(this, tempCharacter);
+                    formTabs.outerHTML = newFormTabs.render();
+                    
+                    // Восстанавливаем состояние формы
+                    this.restoreFormState(formState);
+                    this.setupFormHandlers(tempCharacter);
+                    
+                    console.log('=== DEBUG onLevelChange COMPLETE ===');
+                }
+            }
+        }, 100);
+    }
+
+    async applySpellFilters(preloadedSpells = null) {
+        try {
+            let spells = preloadedSpells || await spellLoader.loadFromFirestore();
+            if (spells.length === 0 && !preloadedSpells) {
+                spells = await spellLoader.loadFromJSON();
+            }
+
+            const character = this.getCurrentFormCharacter();
+            if (!character) return;
+
+            // Получаем класс персонажа
+            const classData = this.gameDataLoader.getClassById(character.classId);
+            const className = classData?.name;
+            
+            console.log('=== DEBUG applySpellFilters ===');
+            console.log('Character class:', className);
+            console.log('All spells count:', spells.length);
+
+            // Фильтруем заклинания по классу персонажа
+            let filteredSpells = spells.filter(spell => {
+                return spell.classes && spell.classes.includes(className);
+            });
+
+            console.log('After class filter:', filteredSpells.length);
+
+            // Применяем фильтр по уровню
+            const levelFilter = document.getElementById('spell-level-filter');
+            if (levelFilter && levelFilter.value !== 'all') {
+                const level = parseInt(levelFilter.value);
+                filteredSpells = filteredSpells.filter(spell => spell.level === level);
+                console.log('After level filter:', filteredSpells.length);
+            }
+
+            // Применяем фильтр по поиску
+            const searchFilter = document.getElementById('spell-search');
+            if (searchFilter && searchFilter.value) {
+                const searchTerm = searchFilter.value.toLowerCase();
+                filteredSpells = filteredSpells.filter(spell => 
+                    spell.name.toLowerCase().includes(searchTerm) ||
+                    (spell.description && spell.description.toLowerCase().includes(searchTerm))
+                );
+                console.log('After search filter:', filteredSpells.length);
+            }
+
+            // Сортируем по уровню (возрастание)
+            filteredSpells.sort((a, b) => a.level - b.level);
+
+            this.renderSpellSelectionList(filteredSpells);
+        } catch (error) {
+            console.error('Error applying spell filters:', error);
+        }
+    }
+
+    // Метод для отображения модального окна выбора заклинаний
+    showSpellSelectionModal() {
+        const character = this.getCurrentFormCharacter();
+        if (!character) {
+            alert('Персонаж не найден');
+            return;
+        }
+
+        const advancedChar = new AdvancedCharacter(character);
+        const knownSpellsCount = advancedChar.getKnownSpellsCount();
+        const currentSpellsCount = character.spells?.length || 0;
+        
+        const remainingSlots = knownSpellsCount === 'all' ? '∞' : Math.max(0, knownSpellsCount - currentSpellsCount);
+
+        const modalHtml = `
+            <div class="modal-overlay" id="spell-selection-modal">
+                <div class="modal" style="max-width: 1000px; max-height: 90vh;">
+                    <div class="modal-header">
+                        <h3>Выбор заклинаний 
+                            <span style="font-size: 14px; color: var(--text-muted); margin-left: 10px;">
+                                (Доступно слотов: ${remainingSlots})
+                            </span>
+                        </h3>
+                        <button class="btn-close" onclick="app.characterManager.closeSpellSelectionModal()">×</button>
+                    </div>
+                    
+                    <div class="modal-content">
+                        <div class="spells-filters">
+                            <div class="filter-group">
+                                <label for="spell-level-filter">Уровень:</label>
+                                <select id="spell-level-filter">
+                                    <option value="all">Все уровни</option>
+                                    <option value="0">Заговоры</option>
+                                    <option value="1">1 уровень</option>
+                                    <option value="2">2 уровень</option>
+                                    <option value="3">3 уровень</option>
+                                    <option value="4">4 уровень</option>
+                                    <option value="5">5 уровень</option>
+                                    <option value="6">6 уровень</option>
+                                    <option value="7">7 уровень</option>
+                                    <option value="8">8 уровень</option>
+                                    <option value="9">9 уровень</option>
+                                </select>
+                            </div>
+                            
+                            <div class="filter-group search-group">
+                                <label for="spell-search">Поиск:</label>
+                                <input type="text" id="spell-search" placeholder="Название или описание...">
+                            </div>
+                        </div>
+                        
+                        <div id="spell-selection-list" class="spells-list" style="max-height: 500px; overflow-y: auto;">
+                            <!-- Список заклинаний будет загружен здесь -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Добавляем обработчики фильтров
+        setTimeout(() => {
+            const levelFilter = document.getElementById('spell-level-filter');
+            const searchFilter = document.getElementById('spell-search');
+            
+            if (levelFilter) {
+                levelFilter.addEventListener('change', () => this.applySpellFilters());
+            }
+            if (searchFilter) {
+                searchFilter.addEventListener('input', () => this.applySpellFilters());
+            }
+        }, 100);
+        
+        this.loadSpellsForSelection();
+    }
+
+    async loadSpellsForSelection() {
+        try {
+            let spells = await spellLoader.loadFromFirestore();
+            if (spells.length === 0) {
+                spells = await spellLoader.loadFromJSON();
+            }
+            
+            this.applySpellFilters(spells);
+        } catch (error) {
+            console.error('Error loading spells for selection:', error);
+            document.getElementById('spell-selection-list').innerHTML = '<p>Ошибка загрузки заклинаний</p>';
+        }
+    }
+
+    // Добавим метод группировки заклинаний по уровням
+    groupSpellsByLevel(spells) {
+        return spells.reduce((groups, spell) => {
+            const level = spell.level.toString();
+            if (!groups[level]) {
+                groups[level] = [];
+            }
+            groups[level].push(spell);
+            return groups;
+        }, {});
+    }
+
+    renderSpellSelectionList(spells) {
+        const spellsList = document.getElementById('spell-selection-list');
+        if (!spellsList) return;
+
+        const character = this.getCurrentFormCharacter();
+        if (!character) return;
+
+        const advancedChar = new AdvancedCharacter(character);
+        const knownSpellsCount = advancedChar.getKnownSpellsCount();
+        const currentSpellsCount = character.spells?.length || 0;
+
+        // Проверяем ограничение по количеству заклинаний
+        const canAddMore = knownSpellsCount === 'all' || currentSpellsCount < knownSpellsCount;
+        const remainingSlots = knownSpellsCount === 'all' ? '∞' : Math.max(0, knownSpellsCount - currentSpellsCount);
+
+        if (!canAddMore && knownSpellsCount !== 'all') {
+            spellsList.innerHTML = `
+                <div class="empty-state">
+                    <p>Достигнуто максимальное количество известных заклинаний: ${knownSpellsCount}</p>
+                    <p>Удалите некоторые заклинания перед добавлением новых.</p>
+                </div>
+            `;
+            return;
+        }
+
+        if (!spells.length) {
+            spellsList.innerHTML = `
+                <div class="empty-state">
+                    <p>Заклинания не найдены</p>
+                    <p>Попробуйте изменить параметры фильтрации</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Группируем заклинания по уровням
+        const spellsByLevel = this.groupSpellsByLevel(spells);
+        
+        let html = '';
+        
+        // Рендерим заклинания по уровням
+        Object.keys(spellsByLevel).sort((a, b) => parseInt(a) - parseInt(b)).forEach(level => {
+            const levelSpells = spellsByLevel[level];
+            const levelName = level === '0' ? 'Заговоры' : `${level} уровень`;
+            
+            html += `
+                <div class="spell-level-section">
+                    <h3 class="spell-level-title">${levelName}</h3>
+                    <div class="spells-grid">
+                        ${levelSpells.map(spell => {
+                            const isAlreadyKnown = character.spells?.some(s => s.id === spell.id);
+                            const canAddThisSpell = !isAlreadyKnown && canAddMore;
+                            
+                            return `
+                                <div class="spell-card ${isAlreadyKnown ? 'already-known' : ''}">
+                                    <div class="spell-header">
+                                        <h4 class="spell-name">${spell.name}</h4>
+                                        <span class="spell-level">${spell.level === 0 ? 'Заговор' : spell.level + ' уровень'}</span>
+                                    </div>
+                                    
+                                    <div class="spell-details">
+                                        <span class="spell-school">${spell.school}</span>
+                                    </div>
+                                    
+                                    <div class="spell-info">
+                                        <div class="spell-property">
+                                            <span class="property-label">Время накладывания:</span>
+                                            <span class="property-value">${spell.castingTime}</span>
+                                        </div>
+                                        <div class="spell-property">
+                                            <span class="property-label">Дистанция:</span>
+                                            <span class="property-value">${spell.range}</span>
+                                        </div>
+                                        <div class="spell-property">
+                                            <span class="property-label">Компоненты:</span>
+                                            <span class="property-value">${spell.components}</span>
+                                        </div>
+                                        <div class="spell-property">
+                                            <span class="property-label">Длительность:</span>
+                                            <span class="property-value">${spell.duration}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="spell-actions">
+                                        <button type="button" class="btn-view-spell" onclick="app.characterManager.viewSpellDetails('${spell.id}')">
+                                            Просмотр
+                                        </button>
+                                        ${!isAlreadyKnown ? `
+                                            <button type="button" class="btn-add-to-character" 
+                                                    onclick="app.characterManager.addSpellToCharacter('${spell.id}')"
+                                                    ${!canAddThisSpell ? 'disabled' : ''}>
+                                                Добавить
+                                            </button>
+                                        ` : `
+                                            <button type="button" class="btn-add-to-character" disabled>
+                                                Уже известно
+                                            </button>
+                                        `}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        });
+
+        spellsList.innerHTML = html;
+    }
+
+    getCurrentFormCharacter() {
+        // Получаем данные персонажа из текущей формы
+        const characterId = document.getElementById('character-id')?.value;
+        if (characterId) {
+            return this.characters.find(c => c.id === characterId);
+        }
+        return null;
+    }
+
+    // Добавим метод для обновления счетчика известных заклинаний
+    updateKnownSpellsCount() {
+        const character = this.getCurrentFormCharacter();
+        if (!character) return;
+
+        const advancedChar = new AdvancedCharacter(character);
+        const knownSpellsCount = advancedChar.getKnownSpellsCount();
+        const currentSpellsCount = character.spells?.length || 0;
+
+        const knownSpellsDisplay = document.querySelector('.known-spells-display');
+        if (knownSpellsDisplay) {
+            knownSpellsDisplay.textContent = `${currentSpellsCount} / ${knownSpellsCount === 'all' ? 'все' : knownSpellsCount}`;
+        }
+    }
+
+    async addSpellToCharacter(spellId) {
+        const character = this.getCurrentFormCharacter();
+        if (!character) {
+            alert('Персонаж не найден');
+            return;
+        }
+
+        try {
+            // Загружаем информацию о заклинании
+            let spells = await spellLoader.loadFromFirestore();
+            if (spells.length === 0) {
+                spells = await spellLoader.loadFromJSON();
+            }
+
+            const spell = spells.find(s => s.id === spellId);
+            if (!spell) {
+                alert('Заклинание не найдено');
+                return;
+            }
+
+            // Проверяем ограничения
+            const advancedChar = new AdvancedCharacter(character);
+            const knownSpellsCount = advancedChar.getKnownSpellsCount();
+            const currentSpellsCount = character.spells?.length || 0;
+
+            if (knownSpellsCount !== 'all' && currentSpellsCount >= knownSpellsCount) {
+                alert(`Достигнуто максимальное количество известных заклинаний: ${knownSpellsCount}`);
+                return;
+            }
+
+            // Добавляем заклинание
+            if (!character.spells) {
+                character.spells = [];
+            }
+
+            // Проверяем, не добавлено ли уже это заклинание
+            if (character.spells.some(s => s.id === spellId)) {
+                alert('Это заклинание уже известно персонажу');
+                return;
+            }
+
+            character.spells.push(spell);
+            
+            // Немедленно обновляем отображение
+            this.updateSpellsList();
+            this.updateKnownSpellsCount();
+            
+            // Перезагружаем список заклинаний в модальном окне
+            this.applySpellFilters();
+            
+            // Показываем сообщение об успехе
+            alert(`Заклинание "${spell.name}" успешно добавлено!`);
+            
+        } catch (error) {
+            console.error('Error adding spell to character:', error);
+            alert('Ошибка при добавлении заклинания: ' + error.message);
+        }
+    }
+
+    removeSpell(spellIndex) {
+        const character = this.getCurrentFormCharacter();
+        if (!character || !character.spells) return;
+
+        if (confirm('Удалить это заклинание?')) {
+            character.spells.splice(spellIndex, 1);
+            this.updateSpellsList();
+        }
+    }
+
+    updateSpellsList() {
+        const spellsList = document.getElementById('spells-list');
+        if (!spellsList) return;
+
+        const character = this.getCurrentFormCharacter();
+        if (!character) return;
+
+        const formTabs = new CharacterFormTabs(this, character);
+        spellsList.innerHTML = formTabs.renderSpellsList();
+    }
+
+    closeSpellSelectionModal() {
+        const modal = document.getElementById('spell-selection-modal');
+        if (modal) {
+            modal.remove();
+        }
+    }
+
+    viewSpellDetails(spellId) {
+        // Используем существующий функционал просмотра заклинаний
+        if (window.spellsManager) {
+            window.spellsManager.showSpellDetails(spellId);
+        }
+    }
+
+    toggleSpellSlot(level, index) {
+        const character = this.getCurrentFormCharacter();
+        if (!character || !character.spellcasting) return;
+
+        const slot = character.spellcasting.slots[level];
+        if (!slot) return;
+
+        // Переключаем состояние ячейки
+        const newUsed = slot.used;
+        if (index < slot.used) {
+            newUsed = index; // Сбрасываем все ячейки после этой
+        } else {
+            newUsed = index + 1; // Заполняем до этой ячейки
+        }
+
+        character.spellcasting.slots[level].used = Math.max(0, Math.min(newUsed, slot.total));
+        this.updateSpellSlotsDisplay();
+    }
+
+    updateSpellSlotsDisplay() {
+        const slotsContainer = document.querySelector('.spell-slots-container');
+        if (!slotsContainer) return;
+
+        const character = this.getCurrentFormCharacter();
+        if (!character) return;
+
+        const formTabs = new CharacterFormTabs(this, character);
+        slotsContainer.innerHTML = formTabs.renderSpellSlots();
+    }
+
+    // Методы для снаряжения
+    addEquipmentItem() {
+        const equipmentList = document.getElementById('equipment-list');
+        if (!equipmentList) return;
+
+        const newItemHtml = `
+            <div class="equipment-item" data-index="new">
+                <input type="text" class="equipment-name" placeholder="Название предмета">
+                <input type="text" class="equipment-quantity" value="1" placeholder="1">
+                <input type="text" class="equipment-weight" placeholder="Вес">
+                <button type="button" class="btn-danger btn-sm" onclick="this.parentElement.remove()">🗑️</button>
+            </div>
+        `;
+
+        equipmentList.insertAdjacentHTML('beforeend', newItemHtml);
+    }
+
+    removeEquipmentItem(index) {
+        const equipmentItem = document.querySelector(`.equipment-item[data-index="${index}"]`);
+        if (equipmentItem) {
+            equipmentItem.remove();
+        }
+    }
+
     async saveCharacter() {
         const form = document.getElementById('character-form');
         const characterId = document.getElementById('character-id').value;
         
         if (!form) return;
 
+        // Получаем ID и название класса
+        const classId = document.getElementById('character-class').value;
+        const classData = this.gameDataLoader.getClassById(classId);
+        
+        console.log('=== DEBUG saveCharacter ===');
+        console.log('Class ID:', classId);
+        console.log('Class data:', classData);
+        
         // Сбор данных формы
         const characterData = {
             name: document.getElementById('character-name').value,
             raceId: document.getElementById('character-race').value,
             race: this.gameDataLoader.getRaceById(document.getElementById('character-race').value)?.name || '',
-            classId: document.getElementById('character-class').value,
-            class: this.gameDataLoader.getClassById(document.getElementById('character-class').value)?.name || '',
+            classId: classId,
+            class: classData?.name || '', // Используем русское название из gameDataLoader
             subclassId: document.getElementById('character-subclass').value,
-            subclass: this.gameDataLoader.getSubclassesForClass(document.getElementById('character-class').value)
+            subclass: this.gameDataLoader.getSubclassesForClass(classId)
                         .find(sc => sc.id === document.getElementById('character-subclass').value)?.name || '',
             level: parseInt(document.getElementById('character-level').value),
             backgroundId: document.getElementById('character-background').value,
@@ -663,9 +1373,14 @@ class CharacterManager {
                 currentHP: parseInt(document.getElementById('character-current-hp').value),
                 armorClass: 10 + Math.floor((parseInt(document.getElementById('ability-dexterity').value) - 10) / 2)
             },
+            equipment: this.collectEquipmentData(),
+            spells: this.getCurrentFormCharacter()?.spells || [],
+            spellcasting: this.collectSpellcastingData(),
             updatedAt: new Date()
         };
 
+        console.log('Character data to save:', characterData);
+        
         try {
             let success;
             
@@ -687,7 +1402,7 @@ class CharacterManager {
             } else {
                 // Создание нового персонажа
                 if (this.auth.isSignedIn()) {
-                    // Создаем в облаке
+                    // Создаем в облако
                     const result = await this.auth.syncCharacterToCloud(characterData);
                     success = result.success;
                 } else {
@@ -745,6 +1460,52 @@ class CharacterManager {
             tools,
             armor: [],
             weapons: []
+        };
+    }
+
+    collectEquipmentData() {
+        const equipment = [];
+        document.querySelectorAll('.equipment-item').forEach(item => {
+            const name = item.querySelector('.equipment-name')?.value;
+            const quantity = item.querySelector('.equipment-quantity')?.value;
+            const weight = item.querySelector('.equipment-weight')?.value;
+            
+            if (name) {
+                equipment.push({
+                    name,
+                    quantity: quantity || 1,
+                    weight: weight || ''
+                });
+            }
+        });
+        return equipment;
+    }
+
+    collectSpellcastingData() {
+        const character = this.getCurrentFormCharacter();
+        if (!character) return this.initializeSpellcasting();
+
+        const advancedChar = new AdvancedCharacter(character);
+        advancedChar.updateSpellcasting();
+        return advancedChar.spellcasting;
+    }
+
+    initializeSpellcasting() {
+        return {
+            ability: '',
+            spellAttack: 0,
+            spellSaveDC: 0,
+            slots: {
+                1: { total: 0, used: 0 },
+                2: { total: 0, used: 0 },
+                3: { total: 0, used: 0 },
+                4: { total: 0, used: 0 },
+                5: { total: 0, used: 0 },
+                6: { total: 0, used: 0 },
+                7: { total: 0, used: 0 },
+                8: { total: 0, used: 0 },
+                9: { total: 0, used: 0 }
+            }
         };
     }
 }
