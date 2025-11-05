@@ -1434,342 +1434,7 @@ input[type="checkbox"]:checked + .checkmark::after {
         align-self: flex-end;
     }
 }
-/*.dice-result-container {
-    min-height: 200px;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
-    padding: 20px;
-    margin: 20px 0;
-    background: var(--card-bg);
-    border-radius: var(--border-radius);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.dice-3d {
-    width: 80px;
-    height: 80px;
-    position: relative;
-    transform-style: preserve-3d;
-    transition: transform 1.5s ease-out;
-    cursor: pointer;
-}
-
-.dice-3d:hover {
-    transform: scale(1.1);
-}
-
-.dice-face {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(145deg, #ffffff, #e6e6e6);
-    border: 2px solid #333;
-    border-radius: 10px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 24px;
-    font-weight: bold;
-    color: #333;
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-/* Позиции граней кубика */
-/*.face-1 { transform: rotateY(0deg) translateZ(40px); }
-.face-2 { transform: rotateY(180deg) translateZ(40px); }
-.face-3 { transform: rotateY(90deg) translateZ(40px); }
-.face-4 { transform: rotateY(-90deg) translateZ(40px); }
-.face-5 { transform: rotateX(90deg) translateZ(40px); }
-.face-6 { transform: rotateX(-90deg) translateZ(40px); }*/
-
-/* Анимации броска */
-/*@keyframes diceRoll {
-    0% {
-        transform: translateY(-100px) rotateX(0deg) rotateY(0deg) rotateZ(0deg);
-        opacity: 0;
-    }
-    10% {
-        opacity: 1;
-    }
-    100% {
-        transform: translateY(0) rotateX(720deg) rotateY(540deg) rotateZ(360deg);
-    }
-}
-
-@keyframes diceBounce {
-    0%, 20%, 50%, 80%, 100% {
-        transform: translateY(0);
-    }
-    40% {
-        transform: translateY(-20px);
-    }
-    60% {
-        transform: translateY(-10px);
-    }
-}
-
-.dice-rolling {
-    animation: diceRoll 1.5s ease-out, diceBounce 2s ease-in-out;
-}
-
-.dice-landed {
-    animation: diceBounce 0.5s ease-in-out;
-}*/
-
-/* Стили для точек на гранях */
-/*.dice-dots {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-    width: 60px;
-    height: 60px;
-    gap: 5px;
-}
-
-.dot {
-    width: 12px;
-    height: 12px;
-    background: #333;
-    border-radius: 50%;
-    margin: auto;
-}*/
-
-/* Конфигурации точек для разных значений */
-/*.face-1 .dot { grid-area: 2 / 2; }
-
-.face-2 .dice-dots {
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: repeat(2, 1fr);
-}
-.face-2 .dot:nth-child(1) { grid-area: 1 / 1; }
-.face-2 .dot:nth-child(2) { grid-area: 2 / 2; }
-
-.face-3 .dice-dots {
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-}
-.face-3 .dot:nth-child(1) { grid-area: 1 / 1; }
-.face-3 .dot:nth-child(2) { grid-area: 2 / 2; }
-.face-3 .dot:nth-child(3) { grid-area: 3 / 3; }
-
-.face-4 .dice-dots {
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: repeat(2, 1fr);
-}
-.face-4 .dot { 
-    width: 10px;
-    height: 10px;
-}
-
-.face-5 .dice-dots {
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-}
-.face-5 .dot:nth-child(1) { grid-area: 1 / 1; }
-.face-5 .dot:nth-child(2) { grid-area: 1 / 3; }
-.face-5 .dot:nth-child(3) { grid-area: 2 / 2; }
-.face-5 .dot:nth-child(4) { grid-area: 3 / 1; }
-.face-5 .dot:nth-child(5) { grid-area: 3 / 3; }
-
-.face-6 .dice-dots {
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-}
-.face-6 .dot { 
-    width: 10px;
-    height: 10px;
-}*/
-
-/* Стили для разных типов кубиков */
-/*.dice-d4 {
-    background: linear-gradient(145deg, #ff6b6b, #ee5a52) !important;
-    color: white !important;
-}
-
-.dice-d6 {
-    background: linear-gradient(145deg, #48dbfb, #0abde3) !important;
-    color: white !important;
-}
-
-.dice-d8 {
-    background: linear-gradient(145deg, #1dd1a1, #10ac84) !important;
-    color: white !important;
-}
-
-.dice-d10 {
-    background: linear-gradient(145deg, #f368e0, #ff9ff3) !important;
-    color: white !important;
-}
-
-.dice-d12 {
-    background: linear-gradient(145deg, #ff9f43, #feca57) !important;
-    color: white !important;
-}
-
-.dice-d20 {
-    background: linear-gradient(145deg, #54a0ff, #2e86de) !important;
-    color: white !important;
-}
-
-.dice-d100 {
-    background: linear-gradient(145deg, #5f27cd, #341f97) !important;
-    color: white !important;
-}*/
-
-/* Стили для отображения результата */
-/*.dice-result-text {
-    text-align: center;
-    font-size: 1.5em;
-    margin: 20px 0;
-    padding: 15px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: var(--border-radius);
-    border-left: 4px solid var(--accent);
-}
-
-.dice-total {
-    font-size: 2em;
-    font-weight: bold;
-    color: var(--accent);
-    text-shadow: 0 0 10px rgba(233, 69, 96, 0.5);
-}
-
-.dice-roll-breakdown {
-    font-size: 0.9em;
-    color: var(--text-muted);
-    margin-top: 10px;
-}*/
-
-/* Модальное окно с деталями броска */
-/*.dice-details-content {
-    padding: 20px;
-}
-
-.dice-history {
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.dice-history-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    margin: 5px 0;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
-    transition: background 0.3s ease;
-}
-
-.dice-history-item:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.dice-history-time {
-    font-size: 0.8em;
-    color: var(--text-muted);
-}
-
-/* Стили для составных бросков (например, 2d6+3) */
-/*.multi-dice-roll {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-}
-
-.dice-group {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    flex-wrap: wrap;
-}
-
-.roll-formula {
-    font-size: 1.2em;
-    margin-bottom: 15px;
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    font-family: 'Courier New', monospace;
-}*/
-
-/* Адаптивность */
-/*@media (max-width: 768px) {
-    .dice-3d {
-        width: 60px;
-        height: 60px;
-    }
-    
-    .dice-face {
-        font-size: 18px;
-    }
-    
-    .dice-dots {
-        width: 45px;
-        height: 45px;
-    }
-    
-    .dot {
-        width: 8px;
-        height: 8px;
-    }
-    
-    .dice-result-text {
-        font-size: 1.2em;
-    }
-    
-    .dice-total {
-        font-size: 1.5em;
-    }
-}
-
-@media (max-width: 480px) {
-    .dice-3d {
-        width: 50px;
-        height: 50px;
-    }
-    
-    .dice-face {
-        font-size: 16px;
-    }
-    
-    .dice-dots {
-        width: 35px;
-        height: 35px;
-    }
-    
-    .dot {
-        width: 6px;
-        height: 6px;
-    }
-    
-    .dice-group {
-        gap: 5px;
-    }
-}
-.advanced-dice-controls {
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.advanced-dice-controls h3 {
-    margin-bottom: 15px;
-    color: var(--accent);
-    font-size: 1.2em;
-}
-
-.dice-rolling-container {
-    position: relative;
-    min-height: 200px;
-}*/
-/* Улучшенные стили для 3D кубиков с цветными гранями */
-/* Стили для контейнера 3D кубиков */
-/* Улучшенные стили для контейнера 3D кубиков */
-/* Улучшенные стили для контейнера 3D кубиков */
+/* Стили для 3D контейнера */
 #dice-result {
     width: 100%;
     height: 400px;
@@ -1790,27 +1455,11 @@ input[type="checkbox"]:checked + .checkmark::after {
     font-size: 1.2em;
     text-align: center;
     z-index: 10;
-    background: rgba(0, 0, 0, 0.7);
-    padding: 15px 25px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 20px 30px;
     border-radius: var(--border-radius);
-    border: 1px solid var(--accent);
-}
-
-/* Анимация для текста загрузки */
-.dice-loading {
-    animation: pulse 1.5s ease-in-out infinite alternate;
-}
-
-@keyframes pulse {
-    from { opacity: 0.7; }
-    to { opacity: 1; }
-}
-
-/* Адаптивность */
-@media (max-width: 768px) {
-    #dice-result {
-        height: 300px;
-    }
+    border: 2px solid var(--accent);
+    backdrop-filter: blur(10px);
 }
 
 .dice-result-text {
@@ -1840,18 +1489,769 @@ input[type="checkbox"]:checked + .checkmark::after {
     margin: 10px 0;
 }
 
-.dice-modifier {
-    font-size: 1.2em;
-    color: var(--accent-light);
-    margin: 5px 0;
+/* Анимация пульсации для загрузки */
+@keyframes pulse {
+    0% { opacity: 0.7; transform: translate(-50%, -50%) scale(0.95); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+    100% { opacity: 0.7; transform: translate(-50%, -50%) scale(0.95); }
+}
+
+.dice-loading {
+    animation: pulse 1.5s ease-in-out infinite;
 }
 
 @media (max-width: 768px) {
+    #dice-result {
+        height: 300px;
+    }
+    
     .dice-total {
         font-size: 3em;
     }
     
     .dice-formula {
         font-size: 1.2em;
+    }
+}
+/* Стили для вкладок формы персонажа */
+.character-form-tabs {
+    margin-bottom: 20px;
+}
+
+.tabs-navigation {
+    display: flex;
+    background: var(--secondary-dark);
+    border-radius: var(--border-radius);
+    padding: 8px;
+    margin-bottom: 20px;
+    gap: 4px;
+}
+
+.tab-nav-btn {
+    flex: 1;
+    padding: 12px 16px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.tab-nav-btn.active {
+    background: var(--accent);
+    color: var(--text-light);
+    box-shadow: var(--shadow);
+}
+
+.tab-nav-btn:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-light);
+}
+
+.tab-content-wrapper {
+    min-height: 400px;
+}
+
+/* Двухколоночная сетка */
+.form-grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 768px) {
+    .form-grid-2col {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Уровень и опыт */
+.level-xp-container {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 20px;
+    align-items: center;
+}
+
+.level-display {
+    display: flex;
+    justify-content: center;
+}
+
+.level-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+}
+
+.level-number {
+    font-size: 24px;
+    line-height: 1;
+}
+
+.level-label {
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.xp-progress {
+    flex: 1;
+}
+
+.xp-bar {
+    width: 100%;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 8px 0;
+}
+
+.xp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light));
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+/* Здоровье и защита */
+.health-defense-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.health-section, .defense-section {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.death-saves-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.death-save-type label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-light);
+}
+
+.death-save-checks {
+    display: flex;
+    gap: 8px;
+}
+
+.death-save-checks input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+}
+
+/* Улучшенные характеристики */
+.abilities-grid-enhanced {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+}
+
+.ability-card {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    text-align: center;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.ability-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.ability-header {
+    margin-bottom: 15px;
+}
+
+.ability-label {
+    font-weight: 600;
+    color: var(--text-light);
+    font-size: 14px;
+}
+
+.ability-score-display {
+    margin-bottom: 10px;
+}
+
+.ability-score-input {
+    width: 60px;
+    height: 60px;
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-light);
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.ability-score-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.3);
+    transform: scale(1.05);
+}
+
+.ability-modifier {
+    margin-top: 8px;
+}
+
+.modifier-value {
+    display: inline-block;
+    padding: 4px 12px;
+    background: var(--accent);
+    color: white;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 16px;
+    min-width: 40px;
+}
+
+/* Бонус владения */
+.proficiency-bonus-display {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.proficiency-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    box-shadow: var(--shadow);
+}
+
+/* Спасброски */
+.saving-throws-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+.saving-throw-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    transition: background 0.3s ease;
+}
+
+.saving-throw-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.saving-throw-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    flex: 1;
+}
+
+.saving-throw-modifier {
+    font-weight: bold;
+    color: var(--accent);
+    min-width: 30px;
+    text-align: center;
+}
+
+/* Другие параметры */
+.other-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+}
+
+.passive-skill-value {
+    padding: 10px;
+    background: var(--accent);
+    color: white;
+    border-radius: var(--border-radius);
+    text-align: center;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+/* Состояния */
+.conditions-container textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-light);
+    resize: vertical;
+    font-family: inherit;
+}
+
+/* Снаряжение */
+.equipment-management {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.equipment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.equipment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.equipment-item {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+}
+
+.equipment-item input {
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-light);
+}
+
+.empty-equipment {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Валюта */
+.currency-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+}
+
+.currency-item {
+    text-align: center;
+}
+
+.currency-item label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-light);
+}
+
+.currency-item input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-light);
+    text-align: center;
+}
+
+/* Кнопки */
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .tabs-navigation {
+        flex-direction: column;
+    }
+    
+    .health-defense-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .level-xp-container {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+    
+    .abilities-grid-enhanced {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .equipment-item {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+    
+    .currency-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .abilities-grid-enhanced {
+        grid-template-columns: 1fr;
+    }
+    
+    .currency-grid {
+        grid-template-columns: 1fr;
+    }
+}
+/* Стили для выбранного персонажа в хедере */
+.selected-character-display-container {
+    margin-right: 15px;
+}
+
+.selected-character-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--card-bg);
+    padding: 8px 12px;
+    border-radius: 20px;
+    border: 2px solid var(--accent);
+    position: relative;
+}
+
+.selected-character-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.selected-character-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.selected-character-avatar .avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.selected-character-name {
+    color: var(--text-light);
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.btn-clear-selection {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.btn-clear-selection:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-light);
+}
+
+/* Стили для кнопок в карточке персонажа */
+.btn-selected {
+    background: var(--success) !important;
+    color: white !important;
+    cursor: default !important;
+}
+
+.btn-selected:hover {
+    transform: none !important;
+    background: var(--success) !important;
+}
+
+.btn-view:hover {
+    border-color: #4ECDC4 !important;
+    color: #4ECDC4 !important;
+}
+
+.btn-select:hover {
+    border-color: #FFD700 !important;
+    color: #FFD700 !important;
+}
+
+/* Стили для модального окна просмотра */
+.character-view-content {
+    padding: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.character-view-header {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.character-view-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 3px solid var(--accent);
+}
+
+.character-view-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-placeholder.large {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.character-view-basic-info {
+    flex: 1;
+}
+
+.character-view-basic-info h4 {
+    color: var(--accent);
+    margin-bottom: 8px;
+    font-size: 18px;
+}
+
+.character-view-basic-info p {
+    margin-bottom: 4px;
+    color: var(--text-light);
+}
+
+.character-view-section {
+    margin-bottom: 24px;
+}
+
+.character-view-section h4 {
+    color: var(--accent);
+    margin-bottom: 12px;
+    font-size: 16px;
+    border-left: 3px solid var(--accent);
+    padding-left: 8px;
+}
+
+.character-view-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+}
+
+.stat-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.stat-item label {
+    display: block;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.stat-item span {
+    display: block;
+    color: var(--text-light);
+    font-weight: 600;
+    font-size: 18px;
+}
+
+.abilities-grid-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+}
+
+.ability-view-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.ability-name {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.ability-value {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--text-light);
+    margin-bottom: 4px;
+}
+
+.ability-modifier {
+    font-size: 14px;
+    color: var(--accent);
+    font-weight: 500;
+}
+
+.skills-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+}
+
+.skill-view-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+}
+
+.skill-name {
+    color: var(--text-light);
+    font-size: 14px;
+}
+
+.skill-bonus {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.expertise-badge {
+    color: #FFD700;
+    font-size: 12px;
+}
+
+.equipment-view {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.equipment-item-view {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+}
+
+.equipment-name {
+    color: var(--text-light);
+}
+
+.equipment-quantity {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .selected-character-display-container {
+        margin-right: 10px;
+    }
+    
+    .selected-character-display {
+        padding: 6px 10px;
+    }
+    
+    .selected-character-name {
+        font-size: 12px;
+    }
+    
+    .character-view-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .character-view-stats {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .abilities-grid-view {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .selected-character-display {
+        flex-direction: column;
+        gap: 5px;
+        text-align: center;
+    }
+    
+    .character-view-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .abilities-grid-view {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
