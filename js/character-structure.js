@@ -74,6 +74,9 @@ class AdvancedCharacter {
         // Снаряжение
         this.equipment = data.equipment || [];
         
+        // Магия
+        this.spellcasting = data.spellcasting || this.initializeSpellcasting();
+        
         // Заклинания
         this.spells = data.spells || [];
         
@@ -116,6 +119,25 @@ class AdvancedCharacter {
             intelligence: { proficient: false },
             wisdom: { proficient: false },
             charisma: { proficient: false }
+        };
+    }
+
+    initializeSpellcasting() {
+        return {
+            ability: '', // intelligence, wisdom, charisma
+            spellAttack: 0,
+            spellSaveDC: 0,
+            slots: {
+                1: { total: 0, used: 0 },
+                2: { total: 0, used: 0 },
+                3: { total: 0, used: 0 },
+                4: { total: 0, used: 0 },
+                5: { total: 0, used: 0 },
+                6: { total: 0, used: 0 },
+                7: { total: 0, used: 0 },
+                8: { total: 0, used: 0 },
+                9: { total: 0, used: 0 }
+            }
         };
     }
     
@@ -170,6 +192,193 @@ class AdvancedCharacter {
         }
         return 'intelligence'; // fallback
     }
+
+    // Метод для определения, является ли класс заклинателем
+    isSpellcaster() {
+        const spellcastingClasses = {
+            'Бард': { ability: 'charisma', level: 1 },
+            'Жрец': { ability: 'wisdom', level: 1 },
+            'Друид': { ability: 'wisdom', level: 1 },
+            'Паладин': { ability: 'charisma', level: 2 },
+            'Следопыт': { ability: 'wisdom', level: 2 },
+            'Чародей': { ability: 'charisma', level: 1 },
+            'Колдун': { ability: 'charisma', level: 1 },
+            'Волшебник': { ability: 'intelligence', level: 1 },
+            'Изобретатель': { ability: 'intelligence', level: 1 }
+        };
+        
+        console.log('=== DEBUG isSpellcaster ===');
+        console.log('Current class:', this.class);
+        console.log('Current level:', this.level);
+        console.log('Available spellcasting classes:', Object.keys(spellcastingClasses));
+        
+        const classInfo = spellcastingClasses[this.class];
+        console.log('Class info:', classInfo);
+        
+        const result = classInfo && this.level >= classInfo.level;
+        console.log('Is spellcaster:', result);
+        console.log('====================');
+        
+        return result;
+    }
+
+    // Метод для получения заклинательной характеристики
+    getSpellcastingAbility() {
+        const spellcastingClasses = {
+            'Бард': 'charisma',
+            'Жрец': 'wisdom',
+            'Друид': 'wisdom',
+            'Паладин': 'charisma',
+            'Следопыт': 'wisdom',
+            'Чародей': 'charisma',
+            'Колдун': 'charisma',
+            'Волшебник': 'intelligence',
+            'Изобретатель': 'intelligence'
+        };
+        
+        console.log('=== DEBUG getSpellcastingAbility ===');
+        console.log('Current class:', this.class);
+        console.log('Spellcasting ability:', spellcastingClasses[this.class]);
+        console.log('====================');
+        
+        return spellcastingClasses[this.class] || '';
+    }
+
+    // Расчет ячеек заклинаний
+    calculateSpellSlots() {
+        // Обновим таблицы для русских названий классов
+        const fullCasters = ['Бард', 'Жрец', 'Друид', 'Чародей', 'Волшебник'];
+        const halfCasters = ['Паладин', 'Следопыт', 'Изобретатель'];
+        
+        let table;
+        if (fullCasters.includes(this.class)) {
+            table = this.fullCasterTable;
+        } else if (halfCasters.includes(this.class)) {
+            table = this.halfCasterTable;
+        } else {
+            table = {};
+        }
+
+        const level = Math.min(this.level, 20);
+        const slots = table[level] || [0, 0, 0, 0, 0, 0, 0, 0, 0];
+        
+        console.log('=== DEBUG calculateSpellSlots ===');
+        console.log('Class:', this.class);
+        console.log('Level:', level);
+        console.log('Slots array:', slots);
+        console.log('Table used:', fullCasters.includes(this.class) ? 'fullCaster' : halfCasters.includes(this.class) ? 'halfCaster' : 'none');
+        
+        return {
+            1: { total: slots[0], used: this.spellcasting?.slots?.[1]?.used || 0 },
+            2: { total: slots[1], used: this.spellcasting?.slots?.[2]?.used || 0 },
+            3: { total: slots[2], used: this.spellcasting?.slots?.[3]?.used || 0 },
+            4: { total: slots[3], used: this.spellcasting?.slots?.[4]?.used || 0 },
+            5: { total: slots[4], used: this.spellcasting?.slots?.[5]?.used || 0 },
+            6: { total: slots[5], used: this.spellcasting?.slots?.[6]?.used || 0 },
+            7: { total: slots[6], used: this.spellcasting?.slots?.[7]?.used || 0 },
+            8: { total: slots[7], used: this.spellcasting?.slots?.[8]?.used || 0 },
+            9: { total: slots[8], used: this.spellcasting?.slots?.[9]?.used || 0 }
+        };
+    }
+
+    // Добавим таблицы как свойства класса
+    get fullCasterTable() {
+        return {
+            1: [2, 0, 0, 0, 0, 0, 0, 0, 0],
+            2: [3, 0, 0, 0, 0, 0, 0, 0, 0],
+            3: [4, 2, 0, 0, 0, 0, 0, 0, 0],
+            4: [4, 3, 0, 0, 0, 0, 0, 0, 0],
+            5: [4, 3, 2, 0, 0, 0, 0, 0, 0],
+            6: [4, 3, 3, 0, 0, 0, 0, 0, 0],
+            7: [4, 3, 3, 1, 0, 0, 0, 0, 0],
+            8: [4, 3, 3, 2, 0, 0, 0, 0, 0],
+            9: [4, 3, 3, 3, 1, 0, 0, 0, 0],
+            10: [4, 3, 3, 3, 2, 0, 0, 0, 0],
+            11: [4, 3, 3, 3, 2, 1, 0, 0, 0],
+            12: [4, 3, 3, 3, 2, 1, 0, 0, 0],
+            13: [4, 3, 3, 3, 2, 1, 1, 0, 0],
+            14: [4, 3, 3, 3, 2, 1, 1, 0, 0],
+            15: [4, 3, 3, 3, 2, 1, 1, 1, 0],
+            16: [4, 3, 3, 3, 2, 1, 1, 1, 0],
+            17: [4, 3, 3, 3, 2, 1, 1, 1, 1],
+            18: [4, 3, 3, 3, 3, 1, 1, 1, 1],
+            19: [4, 3, 3, 3, 3, 2, 1, 1, 1],
+            20: [4, 3, 3, 3, 3, 2, 2, 1, 1]
+        };
+    }
+
+    get halfCasterTable() {
+        return {
+            1: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            2: [2, 0, 0, 0, 0, 0, 0, 0, 0],
+            3: [3, 0, 0, 0, 0, 0, 0, 0, 0],
+            4: [3, 0, 0, 0, 0, 0, 0, 0, 0],
+            5: [4, 2, 0, 0, 0, 0, 0, 0, 0],
+            6: [4, 2, 0, 0, 0, 0, 0, 0, 0],
+            7: [4, 3, 0, 0, 0, 0, 0, 0, 0],
+            8: [4, 3, 0, 0, 0, 0, 0, 0, 0],
+            9: [4, 3, 2, 0, 0, 0, 0, 0, 0],
+            10: [4, 3, 2, 0, 0, 0, 0, 0, 0],
+            11: [4, 3, 3, 0, 0, 0, 0, 0, 0],
+            12: [4, 3, 3, 0, 0, 0, 0, 0, 0],
+            13: [4, 3, 3, 1, 0, 0, 0, 0, 0],
+            14: [4, 3, 3, 1, 0, 0, 0, 0, 0],
+            15: [4, 3, 3, 2, 0, 0, 0, 0, 0],
+            16: [4, 3, 3, 2, 0, 0, 0, 0, 0],
+            17: [4, 3, 3, 3, 1, 0, 0, 0, 0],
+            18: [4, 3, 3, 3, 1, 0, 0, 0, 0],
+            19: [4, 3, 3, 3, 2, 0, 0, 0, 0],
+            20: [4, 3, 3, 3, 2, 0, 0, 0, 0]
+        };
+    }
+
+    // Расчет бонуса атаки заклинанием
+    calculateSpellAttack() {
+        if (!this.isSpellcaster()) return 0;
+        const ability = this.getSpellcastingAbility();
+        const abilityMod = this.getAbilityModifier(ability);
+        return this.getProficiencyBonus() + abilityMod;
+    }
+
+    // Расчет Сл спасброска от заклинаний
+    calculateSpellSaveDC() {
+        if (!this.isSpellcaster()) return 0;
+        const ability = this.getSpellcastingAbility();
+        const abilityMod = this.getAbilityModifier(ability);
+        return 8 + this.getProficiencyBonus() + abilityMod;
+    }
+
+    // Обновление всей информации о магии
+    updateSpellcasting() {
+        if (this.isSpellcaster()) {
+            this.spellcasting.ability = this.getSpellcastingAbility();
+            this.spellcasting.spellAttack = this.calculateSpellAttack();
+            this.spellcasting.spellSaveDC = this.calculateSpellSaveDC();
+            this.spellcasting.slots = this.calculateSpellSlots();
+        }
+    }
+
+    // Получение количества известных заклинаний
+    getKnownSpellsCount() {
+        const knownSpells = {
+            'Бард': Math.min(this.level + 3, 24),
+            'Жрец': 'all',
+            'Друид': 'all',
+            'Чародей': Math.min(this.level + 1, 15),
+            'Волшебник': 'all',
+            'Колдун': Math.min(this.level + 1, 15),
+            'Паладин': Math.min(this.level / 2 + 1, 10),
+            'Следопыт': Math.min(this.level / 2 + 1, 11),
+            'Изобретатель': 'all'
+        };
+        
+        console.log('=== DEBUG getKnownSpellsCount ===');
+        console.log('Current class:', this.class);
+        console.log('Known spells count:', knownSpells[this.class]);
+        console.log('====================');
+        
+        return knownSpells[this.class] || 0;
+    }
 }
 
 // Константы для DnD 5e
@@ -208,3 +417,8 @@ const SKILL_NAMES = {
     stealth: 'Скрытность',
     survival: 'Выживание'
 };
+
+// Константы для магии
+const SPELLCASTING_CLASSES = [
+    'Bard', 'Cleric', 'Druid', 'Paladin', 'Ranger', 'Sorcerer', 'Warlock', 'Wizard', 'Artificer'
+];
