@@ -105,7 +105,11 @@ class GameDataLoader {
     }
 
     getClassById(id) {
-        return this.classes.find(cls => cls.id === id);
+        const found = this.classes.find(cls => cls.id === id);
+        console.log('=== DEBUG getClassById ===');
+        console.log('Looking for class ID:', id);
+        console.log('Found:', found);
+        return found;
     }
 
     getSubclassesForClass(classId) {
@@ -149,6 +153,8 @@ class GameDataLoader {
     }
 
     getAvailableClasses() {
+        console.log('=== DEBUG getAvailableClasses ===');
+        console.log('Available classes:', this.classes);
         return this.classes.sort((a, b) => a.name.localeCompare(b.name));
     }
 
