@@ -24,6 +24,10 @@
                 <h1 class="app-title">🎭 DnD Character Manager</h1>
                 
                 <div class="auth-container">
+                    <!-- Контейнер для выбранного персонажа -->
+                    <div id="selected-character-display" class="selected-character-display-container" style="display: none;">
+                        <!-- Будет заполняться динамически -->
+                    </div>
                     <!-- Секция для неавторизованных пользователей -->
                     <div id="auth-section" class="auth-section">
                         <button id="signin-btn" class="btn-secondary">Войти</button>
@@ -229,7 +233,7 @@
                     <input type="password" id="auth-password" required minlength="6">
                 </div>
                 
-                <div id="auth-username-field" class="form-group">
+                <div id="auth-username-field" class="form-group" style="display: none;">
                     <label for="auth-username">Имя пользователя</label>
                     <input type="text" id="auth-username">
                 </div>
@@ -317,7 +321,13 @@
     <script src="js/game-data-loader.js"></script>
     <script src="js/spell-loader.js"></script>
     <script src="js/spells-manager.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/character-form-tabs.js"></script>
+    <script src="js/character-manager.js"></script>
+    <script src="js/character-view-manager.js"></script>
+    <script src="js/dice-manager.js"></script>
+    <script src="js/ui-manager.js"></script>
     <script src="js/dice-engine.js"></script>
+    <script src="js/app.js"></script>
+    
 </body>
 </html>
