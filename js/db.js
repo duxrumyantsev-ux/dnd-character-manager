@@ -1,7 +1,7 @@
 class DnDDatabase {
     constructor() {
         this.dbName = 'DnDCharacterManager';
-        this.version = 1;
+        this.version = 2; // Увеличиваем версию для обновления
         this.db = null;
     }
 
@@ -18,17 +18,25 @@ class DnDDatabase {
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
                 
-                if (!db.objectStoreNames.contains('characters')) {
-                    const characterStore = db.createObjectStore('characters', { 
-                        keyPath: 'id', 
-                        autoIncrement: true 
-                    });
-                    characterStore.createIndex('name', 'name', { unique: false });
-                    characterStore.createIndex('class', 'class', { unique: false });
-                    characterStore.createIndex('level', 'level', { unique: false });
+                // Удаляем старую базу если есть и создаем новую
+                if (db.objectStoreNames.contains('characters')) {
+                    db.deleteObjectStore('characters');
                 }
+                
+                const characterStore = db.createObjectStore('characters', { 
+                    keyPath: 'id'
+                });
+                characterStore.createIndex('name', 'name', { unique: false });
+                characterStore.createIndex('class', 'class', { unique: false });
+                characterStore.createIndex('level', 'level', { unique: false });
+                characterStore.createIndex('source', 'source', { unique: false });
             };
         });
+    }
+
+    // Генерация уникального ID
+    generateId() {
+        return 'local_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     }
 
     async getAll(storeName) {
@@ -81,8 +89,14 @@ class DnDDatabase {
             const store = transaction.objectStore(storeName);
             const request = store.delete(id);
 
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+                console.log('Successfully deleted from IndexedDB:', id);
+                resolve(true);
+            };
+            request.onerror = () => {
+                console.error('Error deleting from IndexedDB:', request.error);
+                reject(request.error);
+            };
         });
     }
 
@@ -97,6 +111,7 @@ class DnDDatabase {
 
     async addCharacter(character) {
         const defaultCharacter = {
+            id: this.generateId(),
             name: 'Новый персонаж',
             race: 'Человек',
             gender: '',
@@ -124,11 +139,16 @@ class DnDDatabase {
             skills: {},
             equipment: [],
             spells: [],
+            source: 'local',
             createdAt: new Date(),
             updatedAt: new Date()
         };
 
         const characterData = { ...defaultCharacter, ...character };
+        // Если передали свой ID, используем его
+        if (character.id) {
+            characterData.id = character.id;
+        }
         return this.add('characters', characterData);
     }
 
@@ -138,6 +158,7 @@ class DnDDatabase {
     }
 
     async deleteCharacter(id) {
+        console.log('Deleting character from database with ID:', id);
         return this.delete('characters', id);
     }
 }
