@@ -2,7 +2,7 @@ class AuthManager {
     constructor() {
         this.user = null;
         this.isInitialized = false;
-        this.onAuthStateChanged = null; // Колбэк для основного приложения
+        this.onAuthStateChanged = null;
         this.initFirebase();
     }
 
@@ -18,29 +18,48 @@ class AuthManager {
         };
 
         try {
-            firebase.initializeApp(firebaseConfig);
+            // Проверяем, не инициализирован ли Firebase уже
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
             this.auth = firebase.auth();
             this.db = firebase.firestore();
+            
+            // Настройка persistence для лучшей синхронизации
+            this.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+            
             this.setupAuthListener();
             this.isInitialized = true;
-            console.log('Firebase initialized');
+            console.log('Firebase initialized successfully');
         } catch (error) {
             console.error('Firebase initialization error:', error);
         }
     }
 
     setupAuthListener() {
-        this.auth.onAuthStateChanged((user) => {
-            this.user = user;
+        this.auth.onAuthStateChanged(async (user) => {
             console.log('Auth state changed:', user ? user.email : 'No user');
+            this.user = user;
+            
+            if (user) {
+                console.log('User UID:', user.uid);
+                // Обновляем токен для надежности
+                try {
+                    const token = await user.getIdToken(true);
+                    console.log('User token refreshed');
+                } catch (error) {
+                    console.error('Token refresh error:', error);
+                }
+            }
             
             // Вызываем колбэк основного приложения
             if (this.onAuthStateChanged) {
                 this.onAuthStateChanged(user);
             }
             
-            // Обновляем UI напрямую на всякий случай
             this.updateAuthUI(user);
+        }, (error) => {
+            console.error('Auth state change error:', error);
         });
     }
 
@@ -55,7 +74,6 @@ class AuthManager {
             userSection.style.display = 'flex';
             userEmail.textContent = user.email;
             
-            // Загружаем и устанавливаем аватар
             this.getUserProfile().then(profile => {
                 const userAvatar = document.getElementById('user-avatar');
                 if (profile && profile.avatar && userAvatar) {
@@ -63,7 +81,6 @@ class AuthManager {
                 }
             });
 
-            // Показываем кнопку миграции
             if (migrateBtn) {
                 setTimeout(() => {
                     database.getLocalCharacters().then(localChars => {
@@ -138,7 +155,6 @@ class AuthManager {
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            // Обновляем аватар в UI
             const userAvatar = document.getElementById('user-avatar');
             if (userAvatar) {
                 userAvatar.textContent = avatar;
@@ -180,18 +196,23 @@ class AuthManager {
             const characterData = {
                 ...character,
                 userId: this.user.uid,
+                source: 'cloud',
                 lastSynced: firebase.firestore.FieldValue.serverTimestamp()
             };
 
+            console.log('Syncing character to cloud:', characterData);
+
             let result;
-            if (character.id && character.id.toString().length < 20) {
-                // Это cloud ID - обновляем существующего персонажа
-                result = await this.db.collection('characters').doc(character.id.toString()).update(characterData);
+            if (character.id && character.id.startsWith('cloud_')) {
+                // Обновляем существующего облачного персонажа
+                result = await this.db.collection('characters').doc(character.id).set(characterData, { merge: true });
                 return { success: true, id: character.id };
             } else {
-                // Создаем нового персонажа
-                result = await this.db.collection('characters').add(characterData);
-                return { success: true, id: result.id };
+                // Создаем нового персонажа с новым cloud ID
+                const cloudId = 'cloud_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                characterData.id = cloudId;
+                result = await this.db.collection('characters').doc(cloudId).set(characterData);
+                return { success: true, id: cloudId };
             }
         } catch (error) {
             console.error('Sync character error:', error);
@@ -200,18 +221,45 @@ class AuthManager {
     }
 
     async getCloudCharacters() {
-        if (!this.user) return [];
+        if (!this.user) {
+            console.log('No user, cannot get cloud characters');
+            return [];
+        }
 
         try {
+            console.log('Fetching cloud characters for user:', this.user.uid);
+            
             const snapshot = await this.db.collection('characters')
                 .where('userId', '==', this.user.uid)
-                .orderBy('lastSynced', 'desc')
                 .get();
 
-            return snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            const characters = snapshot.docs.map(doc => {
+                const data = doc.data();
+                // Конвертируем Firestore timestamp в Date
+                if (data.lastSynced && data.lastSynced.toDate) {
+                    data.lastSynced = data.lastSynced.toDate();
+                }
+                if (data.createdAt && data.createdAt.toDate) {
+                    data.createdAt = data.createdAt.toDate();
+                }
+                if (data.updatedAt && data.updatedAt.toDate) {
+                    data.updatedAt = data.updatedAt.toDate();
+                }
+                return {
+                    id: doc.id,
+                    ...data
+                };
+            });
+            
+            // Сортируем по дате обновления (новые сначала)
+            characters.sort((a, b) => {
+                const dateA = a.lastSynced || a.updatedAt || new Date(0);
+                const dateB = b.lastSynced || b.updatedAt || new Date(0);
+                return new Date(dateB) - new Date(dateA);
+            });
+            
+            console.log(`Loaded ${characters.length} cloud characters for user ${this.user.uid}`, characters);
+            return characters;
         } catch (error) {
             console.error('Get cloud characters error:', error);
             return [];
@@ -222,7 +270,9 @@ class AuthManager {
         if (!this.user) return false;
 
         try {
+            console.log('Deleting cloud character:', characterId);
             await this.db.collection('characters').doc(characterId).delete();
+            console.log('Cloud character deleted successfully');
             return true;
         } catch (error) {
             console.error('Delete cloud character error:', error);
