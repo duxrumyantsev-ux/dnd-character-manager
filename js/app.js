@@ -1,4 +1,4 @@
-// Главный класс приложения
+// Главный класс приложения - координация всех компонентов
 class DnDApp {
     constructor() {
         this.db = database;
@@ -19,21 +19,31 @@ class DnDApp {
 
     async init() {
         try {
+            // Сначала инициализируем базу данных
             await this.db.init();
             console.log('Database initialized');
             
-            // Настраиваем обработчики аутентификации
+            // Затем менеджер персонажей
+            this.characterManager = new CharacterManager(this.db, this.auth, this.gameDataLoader);
+            
+            // Затем аутентификацию
             this.auth.onAuthStateChanged = (user) => this.handleAuthStateChange(user);
             
-            // Загружаем игровые данные
-            await this.loadGameData();
+            // Инициализируем менеджер заклинаний
+            this.spellsManager = new SpellsManager(this.spellLoader);
             
-            this.initUI();
-            this.initTabs();
-            this.initDice();
-            this.initCharacterManager();
-            this.initAuthHandlers();
-            this.initSpellsManager();
+            // Инициализируем менеджер кубиков
+            this.diceManager = new DiceManager();
+            
+            // Параллельно загружаем остальные данные
+            await Promise.all([
+                this.loadGameData(),
+                this.initUI(),
+                this.initTabs(),
+                this.initAuthHandlers(),
+                this.initSpellsFilters()
+            ]);
+            
             this.initServiceWorker();
             
         } catch (error) {
@@ -62,9 +72,9 @@ class DnDApp {
     async handleAuthStateChange(user) {
         console.log('App handling auth state change:', user ? user.email : 'No user');
         
-        if (user) {
-            try {
-                // Загружаем облачных персонажей
+        try {
+            if (user) {
+                console.log('Loading cloud characters for user:', user.uid);
                 await this.loadCloudCharacters();
                 
                 // Обновляем аватар
@@ -73,14 +83,14 @@ class DnDApp {
                     const userAvatar = document.getElementById('user-avatar');
                     if (userAvatar) userAvatar.textContent = profile.avatar;
                 }
-            } catch (error) {
-                console.error('Error in handleAuthStateChange:', error);
-                // В случае ошибки загружаем локальные данные
-                this.characterManager.loadCharacters();
+            } else {
+                console.log('Loading local characters');
+                await this.characterManager.loadCharacters();
             }
-        } else {
-            // Загружаем локальные данные
-            this.characterManager.loadCharacters();
+        } catch (error) {
+            console.error('Error in handleAuthStateChange:', error);
+            // В случае ошибки загружаем локальные данные
+            await this.characterManager.loadCharacters();
         }
     }
 
@@ -89,8 +99,13 @@ class DnDApp {
     }
 
     initServiceWorker() {
+        // Проверяем, что мы не в file:// протоколе
+        if (window.location.protocol === 'file:') {
+            console.log('Service Worker disabled for file:// protocol');
+            return;
+        }
+        
         if ('serviceWorker' in navigator) {
-            // Принудительно обновляем Service Worker
             navigator.serviceWorker.getRegistrations().then(registrations => {
                 for(let registration of registrations) {
                     registration.unregister();
@@ -99,7 +114,6 @@ class DnDApp {
                 navigator.serviceWorker.register('/sw.js')
                     .then(registration => {
                         console.log('SW registered:', registration);
-                        // Принудительно обновляем кэш
                         registration.update();
                     })
                     .catch(error => console.log('SW registration failed:', error));
@@ -158,6 +172,36 @@ class DnDApp {
         if (migrateBtn) {
             migrateBtn.addEventListener('click', () => this.migrateLocalToCloud());
         }
+
+        // Кнопка создания персонажа
+        const addCharacterBtn = document.getElementById('add-character');
+        if (addCharacterBtn) {
+            addCharacterBtn.addEventListener('click', () => {
+                this.characterManager.showCharacterForm();
+            });
+        }
+
+        // Кнопка принудительного обновления данных
+        const refreshBtn = document.createElement('button');
+        refreshBtn.className = 'btn-secondary';
+        refreshBtn.innerHTML = '🔄 Обновить';
+        refreshBtn.style.marginLeft = '10px';
+        refreshBtn.addEventListener('click', () => this.forceRefresh());
+        
+        const userSection = document.getElementById('user-section');
+        if (userSection) {
+            userSection.appendChild(refreshBtn);
+        }
+    }
+
+    async forceRefresh() {
+        console.log('Force refreshing data...');
+        if (this.auth.isSignedIn()) {
+            await this.loadCloudCharacters();
+        } else {
+            await this.characterManager.loadCharacters();
+        }
+        alert('Данные обновлены');
     }
 
     showAuthModal(mode = 'signin') {
@@ -171,13 +215,11 @@ class DnDApp {
         if (mode === 'signup') {
             title.textContent = 'Регистрация';
             submitBtn.textContent = 'Зарегистрироваться';
-            usernameField.classList.remove('hidden');
-            usernameField.classList.add('visible');
+            usernameField.style.display = 'block';
         } else {
             title.textContent = 'Вход';
             submitBtn.textContent = 'Войти';
-            usernameField.classList.remove('visible');
-            usernameField.classList.add('hidden');
+            usernameField.style.display = 'none';
         }
 
         modal.dataset.mode = mode;
@@ -238,7 +280,7 @@ class DnDApp {
     async signOut() {
         const result = await this.auth.signOut();
         if (result.success) {
-            this.characterManager.loadCharacters();
+            await this.characterManager.loadCharacters();
         }
     }
 
@@ -331,17 +373,6 @@ class DnDApp {
         }
     }
 
-    async loadCloudCharacters() {
-        try {
-            const cloudCharacters = await this.auth.getCloudCharacters();
-            this.characters = cloudCharacters;
-            this.characterManager.renderCharacters(cloudCharacters);
-        } catch (error) {
-            console.error('Error loading cloud characters:', error);
-            this.characterManager.loadCharacters();
-        }
-    }
-
     // Управление вкладками
     initTabs() {
         document.querySelectorAll('.tab-button').forEach(button => {
@@ -375,8 +406,7 @@ class DnDApp {
                 this.loadSpells();
                 break;
             case 'dice':
-                // При переключении на вкладку кубиков обновляем историю
-                this.renderDiceHistory();
+                this.diceManager.renderDiceHistory();
                 break;
             case 'combat':
                 this.loadCombat();
@@ -384,213 +414,71 @@ class DnDApp {
         }
     }
 
-    // Система броска кубиков с 3D анимацией
-    initDice() {
-        document.querySelectorAll('.dice').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const sides = parseInt(e.target.dataset.sides);
-                this.roll3DDice(sides);
-            });
-        });
+    async viewCharacter(characterId) {
+        console.log('=== VIEW CHARACTER DEBUG ===');
+        console.log('Requested character ID:', characterId);
         
-        // Обработчики для расширенных бросков
-        document.getElementById('roll-custom').addEventListener('click', () => {
-            const count = parseInt(document.getElementById('dice-count').value) || 1;
-            const sides = parseInt(document.getElementById('dice-sides').value) || 6;
-            const modifier = parseInt(document.getElementById('dice-modifier').value) || 0;
+        try {
+            const character = await this.characterManager.getCharacter(characterId);
+            console.log('Found character:', character);
             
-            this.rollMultiple3DDice(sides, count, modifier);
-        });
-        
-        document.getElementById('roll-advantage').addEventListener('click', () => {
-            this.rollWithAdvantage(false);
-        });
-        
-        document.getElementById('roll-disadvantage').addEventListener('click', () => {
-            this.rollWithAdvantage(true);
-        });
-        
-        // Инициализация истории бросков
-        this.diceHistory = JSON.parse(localStorage.getItem('dnd_dice_history') || '[]');
-        this.renderDiceHistory();
-    }
-
-    // Создание 3D кубика с цветными гранями
-    create3DDice(sides) {
-        const diceElement = document.createElement('div');
-        diceElement.className = `dice-3d dice-d${sides}`;
-        
-        // Создаем грани в зависимости от типа кубика
-        for (let i = 1; i <= sides; i++) {
-            const face = document.createElement('div');
-            face.className = `dice-face face-${i}`;
-            face.textContent = i;
-            face.setAttribute('data-value', i);
-            diceElement.appendChild(face);
-        }
-        
-        return diceElement;
-    }
-
-    // Бросок одного кубика
-    async roll3DDice(sides) {
-        if (!diceEngine || diceEngine.simpleMode) {
-            console.error('Dice engine not initialized');
-            // Fallback: простой случайный бросок
-            const result = Math.floor(Math.random() * sides) + 1;
-            this.showNumericResult(result, sides, 1, 0, [result]);
-            this.saveToDiceHistory([result], result, sides, 1, 0);
-            // Показываем анимацию падения для простого режима
-            resultContainer.innerHTML = `
-                <div class="dice-loading">🎲 Бросаем d${sides}...</div>
-            `;
-            setTimeout(() => {
-                this.showNumericResult(result, sides, 1, 0, [result]);
-            }, 1000);
-            return;
-        }
-        
-        const resultContainer = document.getElementById('dice-result');
-        resultContainer.innerHTML = '<div class="dice-loading">🎲 Бросаем кубик...</div>';
-        
-        await diceEngine.rollDice(sides, 1, 0);
-    }
-
-    // Бросок нескольких кубиков
-    async rollMultiple3DDice(sides, count, modifier) {
-        if (!diceEngine || diceEngine.simpleMode) {
-            console.error('Dice engine not initialized');
-            // Fallback: простые случайные броски
-            const results = Array.from({length: count}, () => Math.floor(Math.random() * sides) + 1);
-            const total = results.reduce((sum, val) => sum + val, 0) + modifier;
-            this.showNumericResult(total, sides, count, modifier, results);
-            this.saveToDiceHistory(results, total, sides, count, modifier);
-            return;
-        }
-        
-        const resultContainer = document.getElementById('dice-result');
-        resultContainer.innerHTML = `<div class="dice-loading">🎲 Бросаем ${count} кубиков...</div>`;
-        
-        await diceEngine.rollDice(sides, count, modifier);
-    }
-
-    // Бросок с преимуществом/помехой
-    async rollWithAdvantage(disadvantage = false) {
-        if (!diceEngine) {
-            console.error('Dice engine not initialized');
-            return;
-        }
-        
-        const resultContainer = document.getElementById('dice-result');
-        resultContainer.innerHTML = '<div class="dice-loading">🎲 Бросок с ' + 
-            (disadvantage ? 'помехой' : 'преимуществом') + '...</div>';
-        
-        const results = await diceEngine.rollDice(20, 2, 0);
-        
-        const result = disadvantage ? 
-            Math.min(results[0], results[1]) : 
-            Math.max(results[0], results[1]);
-        
-        this.showNumericResult(result, 20, 2, 0, results);
-        this.saveToDiceHistory(results, result, 20, 2, 0);
-    }
-    showNumericResult(total, sides, count, modifier, results) {
-        const resultContainer = document.getElementById('dice-result');
-        
-        let formula = `${count}d${sides}`;
-        if (modifier > 0) {
-            formula += `+${modifier}`;
-        } else if (modifier < 0) {
-            formula += `${modifier}`;
-        }
-        
-        let breakdown = '';
-        if (count > 1) {
-            breakdown = ` (${results.join(' + ')})`;
-            if (modifier !== 0) {
-                breakdown += ` ${modifier > 0 ? '+' : ''}${modifier}`;
-            }
-        }
-        
-        resultContainer.innerHTML = `
-            <div class="dice-result-text">
-                <div class="dice-formula">${formula}</div>
-                <div class="dice-total">${total}</div>
-                <div class="dice-roll-breakdown">${breakdown}</div>
-            </div>
-        `;
-    }
-    saveToDiceHistory(results, total, sides, count, modifier) {
-        const rollData = {
-            timestamp: new Date().toISOString(),
-            results: results,
-            total: total,
-            sides: sides,
-            count: count,
-            modifier: modifier,
-            time: new Date().toLocaleTimeString()
-        };
-        
-        this.diceHistory.push(rollData);
-        
-        // Сохраняем только последние 50 бросков
-        if (this.diceHistory.length > 50) {
-            this.diceHistory = this.diceHistory.slice(-50);
-        }
-        
-        localStorage.setItem('dnd_dice_history', JSON.stringify(this.diceHistory));
-        this.renderDiceHistory();
-    }
-
-    renderDiceHistory() {
-        const historyList = document.getElementById('dice-history-list');
-        if (!historyList) return;
-        
-        historyList.innerHTML = '';
-        
-        this.diceHistory.slice().reverse().forEach(roll => {
-            const historyItem = document.createElement('div');
-            historyItem.className = 'dice-history-item';
-            
-            let formula = `${roll.count}d${roll.sides}`;
-            if (roll.modifier > 0) {
-                formula += `+${roll.modifier}`;
-            } else if (roll.modifier < 0) {
-                formula += `${roll.modifier}`;
+            if (!character) {
+                alert('Персонаж не найден. ID: ' + characterId);
+                return;
             }
             
-            historyItem.innerHTML = `
-                <div>
-                    <strong>${formula}</strong>
-                    <div class="dice-roll-details">
-                        ${roll.count > 1 ? `${roll.results.join(' + ')}` : ''}
-                        ${roll.modifier !== 0 ? ` ${roll.modifier > 0 ? '+' : ''}${roll.modifier}` : ''}
+            this.showCharacterView(character);
+        } catch (error) {
+            console.error('Error viewing character:', error);
+            alert('Ошибка при загрузке персонажа: ' + error.message);
+        }
+    }
+
+    showCharacterView(character) {
+        const modalHtml = `
+            <div class="modal-overlay" id="character-view-modal">
+                <div class="modal" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h3>${character.name || 'Без имени'}</h3>
+                        <button class="btn-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+                    </div>
+                    
+                    <div class="character-view-content">
+                        ${CharacterViewManager.renderCharacterView(character)}
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button class="btn-secondary" onclick="app.characterManager.editCharacter('${character.id}'); this.closest('.modal-overlay').remove()">
+                            ✏️ Редактировать
+                        </button>
+                        <button class="btn-primary" onclick="app.characterManager.selectCharacterById('${character.id}'); this.closest('.modal-overlay').remove()">
+                            ⭐ Выбрать персонажа
+                        </button>
+                        <button class="btn-secondary" onclick="this.closest('.modal-overlay').remove()">
+                            Закрыть
+                        </button>
                     </div>
                 </div>
-                <div>
-                    <div class="dice-result-number" style="font-size: 1.5em;">${roll.total}</div>
-                    <div class="dice-history-time">${roll.time}</div>
-                </div>
-            `;
-            
-            historyList.appendChild(historyItem);
-        });
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
     }
 
-    // Менеджер персонажей
-    initCharacterManager() {
-        this.characterManager = new CharacterManager(this.db, this.auth, this.gameDataLoader);
-        const addCharacterBtn = document.getElementById('add-character');
-        if (addCharacterBtn) {
-            addCharacterBtn.addEventListener('click', () => {
-                this.characterManager.showCharacterForm();
-            });
+    async loadCloudCharacters() {
+        try {
+            console.log('Starting cloud characters load...');
+            const cloudCharacters = await this.auth.getCloudCharacters();
+            console.log('Cloud characters received:', cloudCharacters);
+            this.characters = cloudCharacters;
+            this.characterManager.characters = cloudCharacters;
+            this.characterManager.renderCharacters(cloudCharacters);
+        } catch (error) {
+            console.error('Error loading cloud characters:', error);
+            // При ошибке загрузки облачных данных, показываем локальные
+            console.log('Falling back to local characters');
+            await this.characterManager.loadCharacters();
         }
-    }
-
-    // Менеджер заклинаний
-    initSpellsManager() {
-        this.spellsManager = new SpellsManager(this.spellLoader);
     }
 
     // Загрузка заклинаний
@@ -602,13 +490,12 @@ class DnDApp {
             }
             
             this.spellsManager.renderSpellsList(spells, this.currentSpellFilters);
-            this.setupSpellsFilters();
         } catch (error) {
             console.error('Error loading spells:', error);
         }
     }
 
-    setupSpellsFilters() {
+    initSpellsFilters() {
         const levelFilter = document.getElementById('spell-level-filter');
         const classFilter = document.getElementById('spell-class-filter');
         const schoolFilter = document.getElementById('spell-school-filter');
@@ -643,6 +530,7 @@ class DnDApp {
     // Загрузка боевой ситуации
     async loadCombat() {
         console.log('Loading combat...');
+        // TODO: Реализовать логику боевого трекера
     }
 
     // Миграция локальных данных в облако
@@ -663,13 +551,13 @@ class DnDApp {
                         migratedCount++;
                         // Помечаем персонажа как облачного
                         char.source = 'cloud';
-                        char.cloudId = result.id;
+                        char.id = result.id; // Обновляем ID на cloud ID
                         await this.db.updateCharacter(char);
                     }
                 }
 
                 alert(`Успешно перенесено ${migratedCount} персонажей в облако`);
-                this.loadCloudCharacters();
+                await this.loadCloudCharacters();
                 
                 // Скрываем кнопку миграции
                 const migrateBtn = document.getElementById('migrate-data');
@@ -681,731 +569,14 @@ class DnDApp {
             }
         }
     }
-}
 
-// Менеджер персонажей
-class CharacterManager {
-    constructor(db, auth, gameDataLoader) {
-        this.db = db;
-        this.auth = auth;
-        this.gameDataLoader = gameDataLoader;
-        this.characters = [];
-        this.avatarFile = null;
+    // Методы для глобального доступа из HTML
+    clearSelectedCharacter() {
+        this.characterManager.clearSelectedCharacter();
     }
 
-    async loadCharacters() {
-        try {
-            if (this.auth.isSignedIn()) {
-                this.characters = await this.auth.getCloudCharacters();
-            } else {
-                this.characters = await this.db.getCharacters();
-            }
-            this.renderCharacters(this.characters);
-        } catch (error) {
-            console.error('Error loading characters:', error);
-        }
-    }
-
-    renderCharacters(characters) {
-        const charactersList = document.getElementById('characters-list');
-        if (!charactersList) return;
-        
-        if (characters.length === 0) {
-            const message = this.auth.isSignedIn() ? 
-                'У вас пока нет персонажей в облаке. Создайте первого!' : 
-                'Персонажей пока нет. Создайте первого или войдите для синхронизации!';
-                
-            charactersList.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">🎭</div>
-                    <h3>${this.auth.isSignedIn() ? 'Облачные персонажи' : 'Локальные персонажи'}</h3>
-                    <p>${message}</p>
-                </div>
-            `;
-            return;
-        }
-
-        charactersList.innerHTML = characters.map(character => {
-            const hpPercent = (character.combat.currentHP / character.combat.maxHP) * 100;
-            const hpColor = hpPercent > 70 ? '#4CAF50' : hpPercent > 30 ? '#FF9800' : '#F44336';
-            
-            return `
-                <div class="character-card" data-id="${character.id}">
-                    <div class="character-avatar">
-                        ${character.avatar ? 
-                            `<img src="${character.avatar}" alt="${character.name}" />` : 
-                            '<div class="avatar-placeholder">🎮</div>'
-                        }
-                    </div>
-                    
-                    <div class="character-info">
-                        <div class="character-header">
-                            <h3 class="character-name">${character.name}</h3>
-                            <span class="character-level">${character.class || 'Неизвестно'} ${character.level} ур.</span>
-                        </div>
-                        
-                        <div class="character-details">
-                            <div class="detail-item">
-                                <span class="detail-label">Раса:</span>
-                                <span class="detail-value">${character.race || 'Не указана'}</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Мировоззрение:</span>
-                                <span class="detail-value">${character.alignment || 'Не указано'}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="hp-bar">
-                            <div class="hp-info">
-                                <span class="hp-current">${character.combat.currentHP}</span>
-                                <span class="hp-separator">/</span>
-                                <span class="hp-max">${character.combat.maxHP}</span>
-                                <span class="hp-text">HP</span>
-                            </div>
-                            <div class="hp-track">
-                                <div class="hp-fill" style="width: ${hpPercent}%; background: ${hpColor}"></div>
-                            </div>
-                        </div>
-                        
-                        ${this.auth.isSignedIn() ? 
-                            '<div class="cloud-badge">☁️ Облако</div>' : 
-                            '<div class="local-badge">📱 Локально</div>'
-                        }
-                    </div>
-                    
-                    <div class="character-actions">
-                        <button class="btn-action btn-edit" onclick="app.characterManager.editCharacter(${character.id})" title="Редактировать">
-                            ✏️
-                        </button>
-                        <button class="btn-action btn-delete" onclick="app.characterManager.deleteCharacter(${character.id})" title="Удалить">
-                            🗑️
-                        </button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-
-    async showCharacterForm(characterId = null) {
-        const character = characterId ? await this.getCharacter(characterId) : null;
-        
-        const formHtml = `
-            <div class="modal-overlay" id="character-modal">
-                <div class="modal" style="max-width: 800px;">
-                    <div class="modal-header">
-                        <h3>${character ? 'Редактирование персонажа' : 'Создание нового персонажа'}</h3>
-                        <button class="btn-close" onclick="app.characterManager.closeForm()">×</button>
-                    </div>
-                    
-                    <form id="character-form" class="character-form">
-                        <input type="hidden" id="character-id" value="${character?.id || ''}">
-                        
-                        <!-- Блок аватара -->
-                        <div class="form-section">
-                            <label class="section-label">Внешность</label>
-                            <div class="avatar-upload">
-                                <div class="avatar-preview" id="avatar-preview">
-                                    ${character?.avatar ? 
-                                        `<img src="${character.avatar}" alt="Preview" />` : 
-                                        '<div class="avatar-placeholder">🎮</div>'
-                                    }
-                                </div>
-                                <div class="avatar-controls">
-                                    <input type="file" id="avatar-input" accept="image/*" style="display: none;">
-                                    <button type="button" class="btn-secondary" onclick="document.getElementById('avatar-input').click()">
-                                        📷 Выбрать изображение
-                                    </button>
-                                    ${character?.avatar ? `
-                                        <button type="button" class="btn-danger" onclick="app.characterManager.removeAvatar()">
-                                            ❌ Удалить
-                                        </button>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Основная информация -->
-                        <div class="form-section">
-                            <label class="section-label">Основная информация</label>
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label for="character-name">Имя персонажа *</label>
-                                    <input type="text" id="character-name" value="${character?.name || ''}" required 
-                                           placeholder="Введите имя персонажа">
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="character-race">Раса *</label>
-                                    <select id="character-race" required>
-                                        <option value="">Выберите расу</option>
-                                        ${this.renderRaceOptions(character)}
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="character-class">Класс *</label>
-                                    <select id="character-class" required>
-                                        <option value="">Выберите класс</option>
-                                        ${this.renderClassOptions(character)}
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="character-subclass">Подкласс</label>
-                                    <select id="character-subclass">
-                                        <option value="">Выберите подкласс</option>
-                                        ${this.renderSubclassOptions(character)}
-                                    </select>
-                                    <small id="subclass-hint" class="form-hint" style="display: none;"></small>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="character-level">Уровень *</label>
-                                    <input type="number" id="character-level" value="${character?.level || 1}" 
-                                           min="1" max="20" required>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="character-background">Предыстория</label>
-                                    <select id="character-background">
-                                        <option value="">Выберите предысторию</option>
-                                        ${this.renderBackgroundOptions(character)}
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="character-alignment">Мировоззрение</label>
-                                    <select id="character-alignment">
-                                        <option value="">Выберите мировоззрение</option>
-                                        ${ALIGNMENTS.map(align => 
-                                            `<option value="${align}" ${character?.alignment === align ? 'selected' : ''}>${align}</option>`
-                                        ).join('')}
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Характеристики -->
-                        <div class="form-section">
-                            <label class="section-label">Основные характеристики</label>
-                            <div class="abilities-grid">
-                                ${this.renderAbilityInput('strength', '💪 Сила', character)}
-                                ${this.renderAbilityInput('dexterity', '🎯 Ловкость', character)}
-                                ${this.renderAbilityInput('constitution', '❤️ Телосложение', character)}
-                                ${this.renderAbilityInput('intelligence', '📚 Интеллект', character)}
-                                ${this.renderAbilityInput('wisdom', '👁️ Мудрость', character)}
-                                ${this.renderAbilityInput('charisma', '💫 Харизма', character)}
-                            </div>
-                        </div>
-                        
-                        <!-- Навыки -->
-                        <div class="form-section">
-                            <label class="section-label">Навыки</label>
-                            <div class="skills-grid" id="skills-container">
-                                ${this.renderSkills(character)}
-                            </div>
-                        </div>
-                        
-                        <!-- Владения -->
-                        <div class="form-section">
-                            <label class="section-label">Владения</label>
-                            <div class="proficiencies-grid">
-                                <div class="form-group">
-                                    <label>Языки</label>
-                                    <div class="checkbox-group" id="languages-container">
-                                        ${this.renderLanguageOptions(character)}
-                                    </div>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label>Инструменты</label>
-                                    <div class="checkbox-group" id="tools-container">
-                                        ${this.renderToolOptions(character)}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Здоровье -->
-                        <div class="form-section">
-                            <label class="section-label">Здоровье</label>
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label for="character-max-hp">Максимальное HP *</label>
-                                    <input type="number" id="character-max-hp" 
-                                           value="${character?.combat?.maxHP || 10}" min="1" required>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="character-current-hp">Текущее HP *</label>
-                                    <input type="number" id="character-current-hp" 
-                                           value="${character?.combat?.currentHP || 10}" min="0" required>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="button" class="btn-secondary" onclick="app.characterManager.closeForm()">
-                                Отмена
-                            </button>
-                            <button type="submit" class="btn-primary">
-                                ${character ? 'Сохранить изменения' : 'Создать персонажа'}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        `;
-
-        document.body.insertAdjacentHTML('beforeend', formHtml);
-        this.setupFormHandlers(character);
-    }
-
-    // Вспомогательные методы для рендеринга опций
-    renderRaceOptions(character) {
-        const races = this.gameDataLoader.getAvailableRaces();
-        if (races.length === 0) {
-            return '<option value="">Загрузка рас...</option>';
-        }
-        return races.map(race => 
-            `<option value="${race.id}" ${character?.raceId === race.id ? 'selected' : ''}>
-                ${race.name}
-            </option>`
-        ).join('');
-    }
-
-    renderClassOptions(character) {
-        const classes = this.gameDataLoader.getAvailableClasses();
-        if (classes.length === 0) {
-            return '<option value="">Загрузка классов...</option>';
-        }
-        return classes.map(cls => 
-            `<option value="${cls.id}" ${character?.classId === cls.id ? 'selected' : ''}>
-                ${cls.name}
-            </option>`
-        ).join('');
-    }
-
-    renderSubclassOptions(character) {
-        if (!character?.classId) return '';
-        
-        const availableSubclasses = this.gameDataLoader.getAvailableSubclasses(character);
-        return availableSubclasses.map(subclass => 
-            `<option value="${subclass.id}" ${character?.subclassId === subclass.id ? 'selected' : ''}>
-                ${subclass.name}
-            </option>`
-        ).join('');
-    }
-
-    renderBackgroundOptions(character) {
-        const backgrounds = this.gameDataLoader.getAvailableBackgrounds();
-        if (backgrounds.length === 0) {
-            return '<option value="">Загрузка предысторий...</option>';
-        }
-        return backgrounds.map(bg => 
-            `<option value="${bg.id}" ${character?.backgroundId === bg.id ? 'selected' : ''}>
-                ${bg.name}
-            </option>`
-        ).join('');
-    }
-
-    renderSkills(character) {
-        let html = '';
-        const skills = character?.skills || this.initializeSkills();
-        
-        for (const [skillId, skillData] of Object.entries(skills)) {
-            const skillName = SKILL_NAMES[skillId] || skillId;
-            const ability = this.getSkillAbility(skillId);
-            const abilityName = ABILITY_NAMES[ability];
-            
-            html += `
-                <div class="skill-item">
-                    <label class="skill-checkbox">
-                        <input type="checkbox" id="skill-${skillId}" 
-                               ${skillData.proficient ? 'checked' : ''}>
-                        <span class="checkmark"></span>
-                        ${skillName}
-                        <small class="skill-ability">(${abilityName})</small>
-                    </label>
-                    <label class="expertise-checkbox">
-                        <input type="checkbox" id="expertise-${skillId}" 
-                               ${skillData.expertise ? 'checked' : ''}
-                               ${!skillData.proficient ? 'disabled' : ''}>
-                        <span class="checkmark expert"></span>
-                        Эксперт
-                    </label>
-                </div>
-            `;
-        }
-        return html;
-    }
-
-    renderLanguageOptions(character) {
-        const languages = this.gameDataLoader.getAvailableLanguages();
-        if (languages.length === 0) {
-            return '<div class="checkbox-item">Загрузка языков...</div>';
-        }
-        return languages.map(lang => {
-            const isSelected = character?.proficiencies?.languages?.includes(lang.id);
-            return `
-                <label class="checkbox-item">
-                    <input type="checkbox" value="${lang.id}" 
-                           ${isSelected ? 'checked' : ''}>
-                    <span class="checkmark"></span>
-                    ${lang.name}
-                </label>
-            `;
-        }).join('');
-    }
-
-    renderToolOptions(character) {
-        const tools = this.gameDataLoader.getAvailableTools();
-        if (tools.length === 0) {
-            return '<div class="checkbox-item">Загрузка инструментов...</div>';
-        }
-        return tools.map(tool => {
-            const isSelected = character?.proficiencies?.tools?.includes(tool.id);
-            return `
-                <label class="checkbox-item">
-                    <input type="checkbox" value="${tool.id}" 
-                           ${isSelected ? 'checked' : ''}>
-                    <span class="checkmark"></span>
-                    ${tool.name}
-                </label>
-            `;
-        }).join('');
-    }
-
-    initializeSkills() {
-        return {
-            acrobatics: { proficient: false, expertise: false },
-            animalHandling: { proficient: false, expertise: false },
-            arcana: { proficient: false, expertise: false },
-            athletics: { proficient: false, expertise: false },
-            deception: { proficient: false, expertise: false },
-            history: { proficient: false, expertise: false },
-            insight: { proficient: false, expertise: false },
-            intimidation: { proficient: false, expertise: false },
-            investigation: { proficient: false, expertise: false },
-            medicine: { proficient: false, expertise: false },
-            nature: { proficient: false, expertise: false },
-            perception: { proficient: false, expertise: false },
-            performance: { proficient: false, expertise: false },
-            persuasion: { proficient: false, expertise: false },
-            religion: { proficient: false, expertise: false },
-            sleightOfHand: { proficient: false, expertise: false },
-            stealth: { proficient: false, expertise: false },
-            survival: { proficient: false, expertise: false }
-        };
-    }
-
-    getSkillAbility(skill) {
-        const skillAbilities = {
-            strength: ['athletics'],
-            dexterity: ['acrobatics', 'sleightOfHand', 'stealth'],
-            intelligence: ['arcana', 'history', 'investigation', 'nature', 'religion'],
-            wisdom: ['animalHandling', 'insight', 'medicine', 'perception', 'survival'],
-            charisma: ['deception', 'intimidation', 'performance', 'persuasion']
-        };
-        
-        for (const [ability, skills] of Object.entries(skillAbilities)) {
-            if (skills.includes(skill)) return ability;
-        }
-        return 'intelligence';
-    }
-
-    renderAbilityInput(ability, label, character) {
-        const value = character?.abilities?.[ability] || 10;
-        const modifier = Math.floor((value - 10) / 2);
-        return `
-            <div class="ability-input">
-                <label for="ability-${ability}">${label}</label>
-                <input type="number" id="ability-${ability}" 
-                       value="${value}" min="1" max="30" 
-                       class="ability-score">
-                <div class="ability-modifier">
-                    Мод: ${modifier >= 0 ? '+' + modifier : modifier}
-                </div>
-            </div>
-        `;
-    }
-
-    setupFormHandlers(character) {
-        const form = document.getElementById('character-form');
-        const avatarInput = document.getElementById('avatar-input');
-        const avatarPreview = document.getElementById('avatar-preview');
-        const classSelect = document.getElementById('character-class');
-        const levelInput = document.getElementById('character-level');
-        const subclassSelect = document.getElementById('character-subclass');
-        const subclassHint = document.getElementById('subclass-hint');
-        
-        // Обработчик выбора аватара
-        if (avatarInput) {
-            avatarInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    if (file.size > 2 * 1024 * 1024) {
-                        alert('Размер файла не должен превышать 2MB');
-                        return;
-                    }
-                    
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        if (avatarPreview) {
-                            avatarPreview.innerHTML = `<img src="${e.target.result}" alt="Preview" />`;
-                        }
-                        this.avatarFile = e.target.result;
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-        }
-
-        // Обработчик изменения класса и уровня
-        if (classSelect && levelInput && subclassSelect && subclassHint) {
-            const updateSubclassOptions = () => {
-                const classId = classSelect.value;
-                const level = parseInt(levelInput.value) || 1;
-                
-                if (!classId) {
-                    subclassSelect.innerHTML = '<option value="">Выберите подкласс</option>';
-                    subclassHint.style.display = 'none';
-                    return;
-                }
-                
-                const tempCharacter = { classId, level };
-                const availableSubclasses = this.gameDataLoader.getAvailableSubclasses(tempCharacter);
-                
-                subclassSelect.innerHTML = '<option value="">Выберите подкласс</option>';
-                availableSubclasses.forEach(subclass => {
-                    const option = document.createElement('option');
-                    option.value = subclass.id;
-                    option.textContent = subclass.name;
-                    subclassSelect.appendChild(option);
-                });
-                
-                // Показываем подсказку о доступности подклассов
-                const classData = this.gameDataLoader.getClassById(classId);
-                if (classData) {
-                    const subclasses = classData.subclasses || [];
-                    if (subclasses.length > 0) {
-                        const minLevel = Math.min(...subclasses.map(s => s.availableAt || 3));
-                        if (level < minLevel) {
-                            subclassHint.textContent = `Подклассы доступны с ${minLevel} уровня`;
-                            subclassHint.style.display = 'block';
-                        } else {
-                            subclassHint.style.display = 'none';
-                        }
-                    }
-                }
-            };
-            
-            classSelect.addEventListener('change', updateSubclassOptions);
-            levelInput.addEventListener('input', updateSubclassOptions);
-            
-            // Инициализируем при загрузке
-            updateSubclassOptions();
-        }
-
-        // Обработчик навыков
-        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-            if (checkbox.id.startsWith('skill-')) {
-                checkbox.addEventListener('change', (e) => {
-                    const skillId = e.target.id.replace('skill-', '');
-                    const expertiseCheckbox = document.getElementById(`expertise-${skillId}`);
-                    if (expertiseCheckbox) {
-                        expertiseCheckbox.disabled = !e.target.checked;
-                        if (!e.target.checked) {
-                            expertiseCheckbox.checked = false;
-                        }
-                    }
-                });
-            }
-        });
-
-        // Обработчик отправки формы
-        if (form) {
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.saveCharacter();
-            });
-        }
-
-        // Обновление модификаторов характеристик
-        document.querySelectorAll('.ability-score').forEach(input => {
-            input.addEventListener('input', (e) => {
-                const value = parseInt(e.target.value) || 10;
-                const modifier = Math.floor((value - 10) / 2);
-                const modifierElement = e.target.parentElement.querySelector('.ability-modifier');
-                if (modifierElement) {
-                    modifierElement.textContent = `Мод: ${modifier >= 0 ? '+' + modifier : modifier}`;
-                }
-            });
-        });
-    }
-
-    removeAvatar() {
-        const avatarPreview = document.getElementById('avatar-preview');
-        if (avatarPreview) {
-            avatarPreview.innerHTML = '<div class="avatar-placeholder">🎮</div>';
-        }
-        this.avatarFile = null;
-        const avatarInput = document.getElementById('avatar-input');
-        if (avatarInput) avatarInput.value = '';
-    }
-
-    async getCharacter(characterId) {
-        if (this.auth.isSignedIn()) {
-            return this.characters.find(char => char.id === characterId);
-        } else {
-            return await this.db.get('characters', parseInt(characterId));
-        }
-    }
-
-    async saveCharacter() {
-        const form = document.getElementById('character-form');
-        const characterId = document.getElementById('character-id').value;
-        
-        if (!form) return;
-
-        // Сбор данных формы
-        const characterData = {
-            name: document.getElementById('character-name').value,
-            raceId: document.getElementById('character-race').value,
-            race: this.gameDataLoader.getRaceById(document.getElementById('character-race').value)?.name || '',
-            classId: document.getElementById('character-class').value,
-            class: this.gameDataLoader.getClassById(document.getElementById('character-class').value)?.name || '',
-            subclassId: document.getElementById('character-subclass').value,
-            subclass: this.gameDataLoader.getSubclassesForClass(document.getElementById('character-class').value)
-                        .find(sc => sc.id === document.getElementById('character-subclass').value)?.name || '',
-            level: parseInt(document.getElementById('character-level').value),
-            backgroundId: document.getElementById('character-background').value,
-            background: this.gameDataLoader.getBackgroundById(document.getElementById('character-background').value)?.name || '',
-            alignment: document.getElementById('character-alignment').value,
-            gender: document.getElementById('character-gender')?.value || '',
-            avatar: this.avatarFile,
-            abilities: {
-                strength: parseInt(document.getElementById('ability-strength').value),
-                dexterity: parseInt(document.getElementById('ability-dexterity').value),
-                constitution: parseInt(document.getElementById('ability-constitution').value),
-                intelligence: parseInt(document.getElementById('ability-intelligence').value),
-                wisdom: parseInt(document.getElementById('ability-wisdom').value),
-                charisma: parseInt(document.getElementById('ability-charisma').value)
-            },
-            skills: this.collectSkillsData(),
-            proficiencies: this.collectProficienciesData(),
-            combat: {
-                maxHP: parseInt(document.getElementById('character-max-hp').value),
-                currentHP: parseInt(document.getElementById('character-current-hp').value),
-                armorClass: 10 + Math.floor((parseInt(document.getElementById('ability-dexterity').value) - 10) / 2)
-            },
-            updatedAt: new Date()
-        };
-
-        try {
-            let success;
-            if (this.auth.isSignedIn()) {
-                // Сохраняем в облако
-                if (characterId) {
-                    characterData.id = characterId;
-                }
-                const result = await this.auth.syncCharacterToCloud(characterData);
-                success = result.success;
-            } else {
-                // Сохраняем локально
-                if (characterId) {
-                    const existingCharacter = await this.db.get('characters', parseInt(characterId));
-                    const updatedCharacter = { ...existingCharacter, ...characterData };
-                    await this.db.updateCharacter(updatedCharacter);
-                } else {
-                    await this.db.addCharacter(characterData);
-                }
-                success = true;
-            }
-
-            if (success) {
-                this.closeForm();
-                await this.loadCharacters();
-            } else {
-                alert('Ошибка при сохранении персонажа');
-            }
-            
-        } catch (error) {
-            console.error('Error saving character:', error);
-            alert('Ошибка при сохранении персонажа: ' + error.message);
-        }
-    }
-
-    collectSkillsData() {
-        const skills = this.initializeSkills();
-        for (const skillId of Object.keys(skills)) {
-            const skillCheckbox = document.getElementById(`skill-${skillId}`);
-            const expertiseCheckbox = document.getElementById(`expertise-${skillId}`);
-            
-            if (skillCheckbox) {
-                skills[skillId].proficient = skillCheckbox.checked;
-            }
-            if (expertiseCheckbox) {
-                skills[skillId].expertise = expertiseCheckbox.checked;
-            }
-        }
-        return skills;
-    }
-
-    collectProficienciesData() {
-        const languages = [];
-        const tools = [];
-        
-        // Собираем выбранные языки
-        document.querySelectorAll('#languages-container input[type="checkbox"]:checked').forEach(checkbox => {
-            languages.push(checkbox.value);
-        });
-        
-        // Собираем выбранные инструменты
-        document.querySelectorAll('#tools-container input[type="checkbox"]:checked').forEach(checkbox => {
-            tools.push(checkbox.value);
-        });
-        
-        return {
-            languages,
-            tools,
-            armor: [],
-            weapons: []
-        };
-    }
-
-    async editCharacter(characterId) {
-        await this.showCharacterForm(characterId);
-    }
-
-    async deleteCharacter(characterId) {
-        if (confirm('Вы уверены, что хотите удалить этого персонажа? Это действие нельзя отменить.')) {
-            try {
-                let success;
-                if (this.auth.isSignedIn()) {
-                    success = await this.auth.deleteCloudCharacter(characterId);
-                } else {
-                    success = await this.db.deleteCharacter(parseInt(characterId));
-                }
-
-                if (success) {
-                    await this.loadCharacters();
-                } else {
-                    alert('Ошибка при удалении персонажа');
-                }
-            } catch (error) {
-                console.error('Error deleting character:', error);
-                alert('Ошибка при удалении персонажа');
-            }
-        }
-    }
-
-    closeForm() {
-        const modal = document.getElementById('character-modal');
-        if (modal) {
-            modal.remove();
-        }
-        this.avatarFile = null;
+    selectCharacter(character) {
+        this.characterManager.selectCharacter(character);
     }
 }
 
@@ -1413,6 +584,5 @@ class CharacterManager {
 let app;
 document.addEventListener('DOMContentLoaded', () => {
     app = new DnDApp();
-    // Делаем app глобально доступной для dice-engine
     window.app = app;
 });
