@@ -2255,3 +2255,222 @@ input[type="checkbox"]:checked + .checkmark::after {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+/* Стили для вкладки магии */
+.spellcasting-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.spellcasting-ability-display,
+.spell-attack-display,
+.spell-save-dc-display,
+.known-spells-display {
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Стили для ячеек заклинаний */
+.spell-slot-level {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.spell-slot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.spell-slot-level-label {
+    font-weight: 600;
+    color: var(--text-light);
+}
+
+.spell-slot-count {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.spell-slots-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.spell-slot {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    border: 2px solid var(--accent);
+}
+
+.spell-slot.available {
+    background: transparent;
+    color: var(--accent);
+}
+
+.spell-slot.used {
+    background: var(--accent);
+    color: white;
+}
+
+.spell-slot:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(233, 69, 96, 0.5);
+}
+
+/* Стили для списка заклинаний */
+.spells-management {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.spells-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.spells-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.spell-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.spell-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--accent);
+}
+
+.spell-info {
+    flex: 1;
+}
+
+.spell-name {
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 4px;
+    display: block;
+}
+
+.spell-level {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.spell-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.empty-spells {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Стили для модального окна выбора заклинаний */
+#spell-selection-modal .spells-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+#spell-selection-modal .spell-card.already-known {
+    opacity: 0.6;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+#spell-selection-modal .spell-card.already-known .btn-add-to-character {
+    background: var(--text-muted);
+    cursor: not-allowed;
+}
+.spell-selection-header {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    text-align: center;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.spell-level-section {
+    margin-bottom: 32px;
+}
+
+.spell-level-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--accent);
+}
+/* Адаптивность для магии */
+@media (max-width: 768px) {
+    .spellcasting-info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .spells-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    
+    .spell-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .spell-actions {
+        align-self: flex-end;
+    }
+    
+    .spell-slots-row {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .spell-slot {
+        width: 25px;
+        height: 25px;
+        font-size: 12px;
+    }
+}
